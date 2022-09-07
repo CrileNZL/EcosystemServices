@@ -29,7 +29,7 @@ arcpy.env.extent = arcpy.GetParameterAsText(2)
 cellSize = arcpy.GetParameterAsText(3)
 
 # get output file name from user
-outName = arcpy.GetParameterAsTest(4)
+outName = arcpy.GetParameterAsText(4)
 
 arcpy.CheckOutExtension("Spatial")
 
