@@ -58,7 +58,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd']) 
         # coolOut = float(%cc%)/( float(%ha%) * Exp(distOut/ float(%d%)
 
         # model: y = -3.9x3 + 89.1x2 - 814.5x + 2968
-        nOut = (-3.9 * distIn)**3 + (89.1 * distIn)**2 - (814.5 * distIn) + 2968
+        nOut = -3.9 * (distIn)**3 + 89.1 * (distIn)**2 - (814.5 * distIn) + 2968
         nOut.save("N_" + str(fid) + ".tif")
 
 del row
