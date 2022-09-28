@@ -1,13 +1,30 @@
-# Script to calculate cooling algorithm for Richard Morris
-# C. Doscher - August 2022
+# Script to calculate nitrogen algorithm for Richard Morris
+# C. Doscher - September 2022
 
 import arcpy
 # from arcpy.ia import RasterCalculator
 import math
 from arcpy.sa import *
 
-
 arcpy.env.overwriteOutput = True
+
+# inputFC = arcpy.GetParameterAsText(0)
+inputFC = arcpy.GetParameterAsText(0)
+# get workspace from user
+ws = arcpy.GetParameterAsText(1)
+# arcpy.env.workspace = arcpy.GetParameterAsText(1)
+# arcpy.env.
+
+# get extent from user
+arcpy.env.extent = arcpy.GetParameterAsText(2)
+
+# get cellsize from user
+cellSize = arcpy.GetParameterAsText(3)
+
+# get output file name from user
+outName = arcpy.GetParameterAsText(4)
+
+arcpy.CheckOutExtension("Spatial")
 
 # dcalc = float(d)
 
@@ -40,5 +57,16 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd']) 
         # coolOut = Raster(cc/nextExp)
         # coolOut = float(%cc%)/( float(%ha%) * Exp(distOut/ float(%d%)
 
-# model: y = -3.9x3 + 89.1x2 - 814.5x + 2968
-nOut = (-3.9 * distIn)**3 + (89.1 * distIn)**2 - (814.5 * distIn) + 2968
+        # model: y = -3.9x3 + 89.1x2 - 814.5x + 2968
+        nOut = (-3.9 * distIn)**3 + (89.1 * distIn)**2 - (814.5 * distIn) + 2968
+        nOut.save("N_" + str(fid) + ".tif")
+
+del row
+del cursor
+
+rasters = arcpy.ListRasters("N_*", "TIF")
+output = outName + ".tif"
+proj = arcpy.SpatialReference(2193)
+arcpy.MosaicToNewRaster_management(rasters, ws, output, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+
+arcpy.CheckInExtension("Spatial")
