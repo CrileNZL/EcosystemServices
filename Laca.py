@@ -41,7 +41,7 @@ arcpy.CheckOutExtension("Spatial")
 # cur = arcpy.da.SearchCursor(input, #, "FID")
 # row = cur.Next()
 
-with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@']) as cursor:
+with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area']) as cursor:
     for row in cursor:
 
 # Set up loop
