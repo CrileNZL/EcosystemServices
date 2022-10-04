@@ -68,6 +68,6 @@ del cursor
 rasters = arcpy.ListRasters("N_*", "TIF")
 output = outName + ".tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, output, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, output, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 
 arcpy.CheckInExtension("Spatial")
