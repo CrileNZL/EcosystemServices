@@ -44,32 +44,33 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd']) 
 # while row: # don't know how many features the input will have
     # for each feature, derive distance grid - Euclidean Distance
     # get FID here for iterating
-        fid = row[0]
-        distOut = "dist_" + str(fid) + ".tif"
-        arcpy.env.workspace = ws
-        #maxDist = '#' # can use ""?
-        dist = arcpy.sa.EucDistance(row[1], "", cellSize)
-        dist.save(distOut)
+        if(row[2]>=15000):
+                fid = row[0]
+                distOut = "dist_" + str(fid) + ".tif"
+                arcpy.env.workspace = ws
+                #maxDist = '#' # can use ""?
+                dist = arcpy.sa.EucDistance(row[1], "", cellSize)
+                dist.save(distOut)
 
-        # get parameter values from input
-        cc = float(row[3])
-        d = float(row[4])
-        ha = float(row[2])/10000
-        # expression = "%cc%/(%ha% * exp(distOut/%d%))"
+                # get parameter values from input
+                cc = float(row[3])
+                d = float(row[4])
+                ha = float(row[2])/10000
+                # expression = "%cc%/(%ha% * exp(distOut/%d%))"
 
-        # Calculate cooling raster
-        arcpy.env.workspace = ws
-        distIn = Raster(distOut)
-        #coolName = "cool_" + str(fid) + ".tif"
-        # expExp = Raster(math.exp(distIn/d))
-        # nextExp = Raster(ha * expExp)
-        # coolOut = Raster(cc/nextExp)
-        # coolOut = float(%cc%)/( float(%ha%) * Exp(distOut/ float(%d%)
+                # Calculate cooling raster
+                arcpy.env.workspace = ws
+                distIn = Raster(distOut)
+                #coolName = "cool_" + str(fid) + ".tif"
+                # expExp = Raster(math.exp(distIn/d))
+                # nextExp = Raster(ha * expExp)
+                # coolOut = Raster(cc/nextExp)
+                # coolOut = float(%cc%)/( float(%ha%) * Exp(distOut/ float(%d%)
 
-        # coolOut = (cc/(ha * Exp(Raster(distIn)/d)))
-        coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
-        coolOut.save("cool_" + str(fid) + ".tif")
-        #RasterCalculator(distOut, "distOut", expression, coolName) # workspace?
+                # coolOut = (cc/(ha * Exp(Raster(distIn)/d)))
+                coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
+                coolOut.save("cool_" + str(fid) + ".tif")
+                #RasterCalculator(distOut, "distOut", expression, coolName) # workspace?
 
 del row
 del cursor
