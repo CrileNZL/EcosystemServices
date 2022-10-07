@@ -24,17 +24,20 @@ arcpy.env.extent = arcpy.GetParameterAsText(3)
 
 # get value of d from user
 d = arcpy.GetParameterAsText(4)
-dcalc = float(d)
+if d == "Fantail":
+    dcalc = 100.0
+elif d == "Bellbird":
+    dcalc = 500.0
 
 # Get boundary zome FC from user
-boundary = arcpy.GetParameterAsText(4)
+boundary = arcpy.GetParameterAsText(5)
 
 # Get cell size from user
 # get cellsize from user
-cellSize = arcpy.GetParameterAsText(5)
+cellSize = arcpy.GetParameterAsText(6)
 
 # get output file name from user
-outName = arcpy.GetParameterAsText(6)
+outName = arcpy.GetParameterAsText(7)
 
 arcpy.CheckOutExtension("Spatial")
 
