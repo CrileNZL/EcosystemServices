@@ -72,12 +72,12 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd']) 
 
 ## Calculate individual ESs
 # Cooling here
-        cc = float(row[3])
-        d = float(row[4])
-        ha = float(row[2])/10000
-# Have to deal with minimum clump size here
-        coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
-        coolOut.save("cool_" + str(fid) + ".tif")
+        if(row[2]>=15000):
+                cc = float(row[3])
+                d = float(row[4])
+                ha = float(row[2])/10000
+                coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
+                coolOut.save("cool_" + str(fid) + ".tif")
 
 # Nitrogen here
         nOut = Con(distIn <= 7, (-3.9 * (distIn)**3 + 89.1 * (distIn)**2 - (814.5 * distIn) + 2968), 0)
