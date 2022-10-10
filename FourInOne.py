@@ -6,6 +6,8 @@
 import arcpy
 # from arcpy.ia import RasterCalculator
 import math
+
+from arcpy import Raster
 from arcpy.sa import *
 
 arcpy.env.overwriteOutput = True
@@ -13,31 +15,33 @@ arcpy.env.overwriteOutput = True
 # Get Clump polygon layer from user
 inputFC = arcpy.GetParameterAsText(0)
 
-# Get input ES raster from user
-inputRas = arcpy.GetParameterAsText(1)
+# Get input ES raster from user - raster names will be internally generated
+# inputRas = arcpy.GetParameterAsText(1)
 
 # Get workspace from user
-arcpy.env.workspace = arcpy.GetParameterAsText(2)
+ws = arcpy.GetParameterAsText(1)
+arcpy.env.workspace = ws
 
 # Get extent from user
-arcpy.env.extent = arcpy.GetParameterAsText(3)
+# arcpy.env.extent = arcpy.GetParameterAsText(3)
 
 # get value of d from user
-d = arcpy.GetParameterAsText(4)
-if d == "Fantail":
+species = arcpy.GetParameterAsText(2)
+if species == "Fantail":
     dcalc = 100.0
-elif d == "Bellbird":
+elif species == "Bellbird":
     dcalc = 500.0
 
-# Get boundary zome FC from user
-boundary = arcpy.GetParameterAsText(5)
+# Get boundary zone FC from user
+boundary = arcpy.GetParameterAsText(3)
+arcpy.env.extent = boundary
 
 # Get cell size from user
 # get cellsize from user
-cellSize = arcpy.GetParameterAsText(6)
+cellSize = arcpy.GetParameterAsText(4)
 
 # get output file name from user
-outName = arcpy.GetParameterAsText(7)
+outName = arcpy.GetParameterAsText(5)
 
 arcpy.CheckOutExtension("Spatial")
 
@@ -64,11 +68,13 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd']) 
         # expression = "%cc%/(%ha% * exp(distOut/%d%))"
 
         # Calculate cooling raster
-        arcpy.env.workspace = ws
         distIn = Raster(distOut)
 
 ## Calculate individual ESs
 # Cooling here
+        cc = float(row[3])
+        d = float(row[4])
+        ha = float(row[2])/10000
 # Have to deal with minimum clump size here
         coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
         coolOut.save("cool_" + str(fid) + ".tif")
@@ -86,41 +92,49 @@ del cursor
 
 ## Calculate final layer for each ES
 # Cooling
-asters = arcpy.ListRasters("cool*", "TIF")
-output = outName + ".tif"
+rasters = arcpy.ListRasters("cool*", "TIF")
+outputC = outName + "_cool.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, output, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, outputC, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
 
 # Nitrogen
 rasters = arcpy.ListRasters("N_*", "TIF")
-output = outName + ".tif"
+outputN = outName + "_nitrogen.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, output, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, outputN, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+
 
 # Habitat
 rasters = arcpy.ListRasters("laca*", "TIF")
-output = outName + ".tif"
+outputH = outName + "_habitat.tif"
 proj = arcpy.SpatialReference(2193)
 #proj = "clump_export.prj"
 # wkt = PROJCS["NZGD2000 / New Zealand Transverse Mercator 2000",GEOGCS["NZGD2000",DATUM["D_NZGD_2000",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",173],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",1600000],PARAMETER["false_northing",10000000],UNIT["Meter",1]]
-arcpy.MosaicToNewRaster_management(rasters, ws, output, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, outputH, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+
 
 ## Calculate metascores for each ES
 # Need this to loop through each ES output raster
 # convert clump polygon layer to raster called clumpras - use later in Zonal Stats tool
-arcpy.PolygonToRaster_conversion(inputFC, "FID", "clumpras", "CELL_CENTER", "", 5)
+arcpy.PolygonToRaster_conversion(inputFC, "FID", "clumpras.tif", "CELL_CENTER", "", 5)
 
 # use Con to change NoData values to 0 and existing values to NoData
-mask = Con((IsNull(Raster("clumpras"))), 0)
+mask = Con((IsNull("clumpras.tif")), 0)
 mask.save("mask.tif")
 
 # Sum up pixel values outside of clumps using mask
 arcpy.env.mask = mask
-outZStat = arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", inputRas, outName, "DATA", "SUM")
-
+arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
+arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
+arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputH), outName + "_MSHabitat.dbf", "DATA", "SUM")
 
 ## Clean up
-# Delete distance and individual ES grids - may need a loop to do this
-arcpy.Delete_management()
+# Delete distance and individual ES grids
+for ras in arcpy.ListRasters("*", "TIF"):
+        if not ras.startswith(outName):
+                arcpy.Delete_management(ras)
+# oldRasters = arcpy.ListRasters("", "TIF")
+# for ras in oldRasters:
+#         arcpy.Delete_management(ras)
 
 arcpy.CheckInExtension("Spatial")
