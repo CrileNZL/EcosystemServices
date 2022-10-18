@@ -93,9 +93,10 @@ del cursor
 ## Calculate final layer for each ES
 # Cooling
 rasters = arcpy.ListRasters("cool*", "TIF")
-outputC = outName + "_cool.tif"
-proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, outputC, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+if len(rasters) > 0:
+        outputC = outName + "_cool.tif"
+        proj = arcpy.SpatialReference(2193)
+        arcpy.MosaicToNewRaster_management(rasters, ws, outputC, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
 
 # Nitrogen
 rasters = arcpy.ListRasters("N_*", "TIF")
