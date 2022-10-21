@@ -125,7 +125,7 @@ mask.save("mask.tif")
 
 # Sum up pixel values outside of clumps using mask
 arcpy.env.mask = mask
-if arcpy.Exists(outputC):
+if arcpy.Exists(Raster(outputC)):
         arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
 arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
 arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputH), outName + "_MSHabitat.dbf", "DATA", "SUM")
