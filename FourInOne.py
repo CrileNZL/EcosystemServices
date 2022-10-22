@@ -93,9 +93,11 @@ del cursor
 ## Calculate final layer for each ES
 # Cooling
 rasters = arcpy.ListRasters("cool*", "TIF")
+outputC = outName + "_cool.tif"
+proj = arcpy.SpatialReference(2193)
 if len(rasters) > 0:
-        outputC = outName + "_cool.tif"
-        proj = arcpy.SpatialReference(2193)
+        # outputC = outName + "_cool.tif"
+        # proj = arcpy.SpatialReference(2193)
         arcpy.MosaicToNewRaster_management(rasters, ws, outputC, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
 
 # Nitrogen
@@ -125,10 +127,12 @@ mask.save("mask.tif")
 
 # Sum up pixel values outside of clumps using mask
 arcpy.env.mask = mask
-if arcpy.Exists(Raster(outputC)):
-        arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
+
+# Calculate metascores.  Skip C if it doesn't exist
 arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
 arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputH), outName + "_MSHabitat.dbf", "DATA", "SUM")
+if arcpy.Exists('Raster(outputC)'):
+    arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
 
 ## Clean up
 # Delete distance and individual ES grids
