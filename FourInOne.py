@@ -47,7 +47,7 @@ arcpy.CheckOutExtension("Spatial")
 
 ## Create distance grids for use in ES code
 # can I do this in one script given minimmum clump size in Cooling.py?
-with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd']) as cursor:
+with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', 'd']) as cursor:
     for row in cursor:
 
 # Set up loop
@@ -119,7 +119,7 @@ arcpy.MosaicToNewRaster_management(rasters, ws, outputH, proj, "32_BIT_FLOAT", c
 ## Calculate metascores for each ES
 # Need this to loop through each ES output raster
 # convert clump polygon layer to raster called clumpras - use later in Zonal Stats tool
-arcpy.PolygonToRaster_conversion(inputFC, "FID", "clumpras.tif", "CELL_CENTER", "", 5)
+arcpy.PolygonToRaster_conversion(inputFC, "OBJECTID", "clumpras.tif", "CELL_CENTER", "", 5)
 
 # use Con to change NoData values to 0 and existing values to NoData
 mask = Con((IsNull("clumpras.tif")), 0)
@@ -129,10 +129,10 @@ mask.save("mask.tif")
 arcpy.env.mask = mask
 
 # Calculate metascores.  Skip C if it doesn't exist
-arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
-arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputH), outName + "_MSHabitat.dbf", "DATA", "SUM")
+arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
+arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputH), outName + "_MSHabitat.dbf", "DATA", "SUM")
 if arcpy.Exists('Raster(outputC)'):
-    arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
+    arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
 
 ## Clean up
 # Delete distance and individual ES grids
