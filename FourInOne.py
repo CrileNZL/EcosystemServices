@@ -109,7 +109,10 @@ proj = arcpy.SpatialReference(2193)
 if len(rasterList) > 0:
         # outputC = outName + "_cool.tif"
         # proj = arcpy.SpatialReference(2193)
-        arcpy.MosaicToNewRaster_management(rasterList, ws, outputC, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+        arcpy.MosaicToNewRaster_management(rasterList, ws, "midcool", proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+        inConstant = 0.75
+        outTimes = Times("midcool", inConstant)
+        outTimes.save(outputC)
 
 # Nitrogen MS raster
 rasters = arcpy.ListRasters("N_*", "TIF")
