@@ -27,10 +27,10 @@ arcpy.env.workspace = ws
 
 # get value of d from user
 species = arcpy.GetParameterAsText(2)
-if species == "Fantail":
-    dcalc = 50.0
-elif species == "Bellbird":
-    dcalc = 500.0
+# if species == "Fantail":
+    # dcalc = 50.0
+# elif species == "Bellbird":
+    # dcalc = 500.0
 
 # Get boundary zone FC from user
 boundary = arcpy.GetParameterAsText(3)
@@ -45,9 +45,12 @@ outName = arcpy.GetParameterAsText(5)
 
 arcpy.CheckOutExtension("Spatial")
 
+# Run NEAR on inputFC for FT habitat calc
+arcpy.Near_analysis(inputFC, inputFC)
+
 ## Create distance grids for use in ES code
 # can I do this in one script given minimmum clump size in Cooling.py?
-with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', 'd']) as cursor:
+with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', 'd', 'NEAR_DIST']) as cursor:
     for row in cursor:
 
 # Set up loop
@@ -71,7 +74,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
         distIn = Raster(distOut)
 
 ## Calculate individual ESs
-# Cooling here
+# Cooling and Bellbird habitat here
         if(row[2]>=15000):
                 cc = float(row[3])
                 d = float((row[2]/math.pi)**0.5)
@@ -79,13 +82,21 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
                 coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
                 coolOut.save("cool_" + str(fid) + ".tif")
 
+                dcalcBB = 500.00
+                lacaBBOut = Con(distIn <= dcalcBB,
+                                ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(distIn) ** 2) ** 3), 0)
+                lacaBBOut.save("lacaBB_" + str(fid) + ".tif")
+
 # Nitrogen here
         nOut = Con(distIn <= 7, (-3.9 * (distIn)**3 + 89.1 * (distIn)**2 - (814.5 * distIn) + 2968), 0)
         nOut.save("N_" + str(fid) + ".tif")
 
-# Habitat here
-        lacaOut = Con(distIn <= dcalc, ((1/dcalc)*1.094*(1 - (1/dcalc)**2*Raster(distIn)**2)**3), 0)
-        lacaOut.save("laca_" + str(fid) + ".tif")
+
+# Fantail Habitat here - include SPUs greater than 1.5 ha and within
+        if(row[2] < 15000 and row[5] < 150.0) or row[2] >= 15000:
+                dcalcFT = 50.0
+                lacaFTOut = Con(distIn <= dcalcFT, ((1/dcalcFT)*1.094*(1 - (1/dcalcFT)**2*Raster(distIn)**2)**3), 0)
+                lacaFTOut.save("lacaFT_" + str(fid) + ".tif")
 
 del row
 del cursor
@@ -100,21 +111,24 @@ if len(rasterList) > 0:
         # proj = arcpy.SpatialReference(2193)
         arcpy.MosaicToNewRaster_management(rasterList, ws, outputC, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
 
-# Nitrogen
+# Nitrogen MS raster
 rasters = arcpy.ListRasters("N_*", "TIF")
 outputN = outName + "_nitrogen.tif"
 proj = arcpy.SpatialReference(2193)
 arcpy.MosaicToNewRaster_management(rasters, ws, outputN, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 
 
-# Habitat
-rasters = arcpy.ListRasters("laca*", "TIF")
-outputH = outName + "_habitat.tif"
+# Bellbird Habitat MS raster
+rasters = arcpy.ListRasters("lacaBB*", "TIF")
+outputHBB = outName + "_habitatBB.tif"
 proj = arcpy.SpatialReference(2193)
-#proj = "clump_export.prj"
-# wkt = PROJCS["NZGD2000 / New Zealand Transverse Mercator 2000",GEOGCS["NZGD2000",DATUM["D_NZGD_2000",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",173],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",1600000],PARAMETER["false_northing",10000000],UNIT["Meter",1]]
-arcpy.MosaicToNewRaster_management(rasters, ws, outputH, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, outputHBB, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
 
+# Fantail  Habitat MS raster
+rasters = arcpy.ListRasters("lacaFT*", "TIF")
+outputHFT = outName + "_habitatFT.tif"
+proj = arcpy.SpatialReference(2193)
+arcpy.MosaicToNewRaster_management(rasters, ws, outputHFT, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
 
 ## Calculate metascores for each ES
 # Need this to loop through each ES output raster
@@ -130,8 +144,9 @@ arcpy.env.mask = mask
 
 # Calculate metascores.  Skip C if it doesn't exist
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
-arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputH), outName + "_MSHabitat.dbf", "DATA", "SUM")
-if arcpy.Exists('Raster(outputC)'):
+arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHBB), outName + "_MSBBHabitat.dbf", "DATA", "SUM")
+arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHFT), outName + "_MSFTHabitat.dbf", "DATA", "SUM")
+if arcpy.Exists(Raster(outputC)):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
 
 ## Clean up
