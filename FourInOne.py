@@ -28,7 +28,7 @@ arcpy.env.workspace = ws
 # get value of d from user
 species = arcpy.GetParameterAsText(2)
 if species == "Fantail":
-    dcalc = 100.0
+    dcalc = 50.0
 elif species == "Bellbird":
     dcalc = 500.0
 
@@ -92,13 +92,13 @@ del cursor
 
 ## Calculate final layer for each ES
 # Cooling
-rasters = arcpy.ListRasters("cool*", "TIF")
+rasterList = arcpy.ListRasters("cool*", "TIF")
 outputC = outName + "_cool.tif"
 proj = arcpy.SpatialReference(2193)
-if len(rasters) > 0:
+if len(rasterList) > 0:
         # outputC = outName + "_cool.tif"
         # proj = arcpy.SpatialReference(2193)
-        arcpy.MosaicToNewRaster_management(rasters, ws, outputC, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+        arcpy.MosaicToNewRaster_management(rasterList, ws, outputC, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
 
 # Nitrogen
 rasters = arcpy.ListRasters("N_*", "TIF")
@@ -113,7 +113,7 @@ outputH = outName + "_habitat.tif"
 proj = arcpy.SpatialReference(2193)
 #proj = "clump_export.prj"
 # wkt = PROJCS["NZGD2000 / New Zealand Transverse Mercator 2000",GEOGCS["NZGD2000",DATUM["D_NZGD_2000",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",173],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",1600000],PARAMETER["false_northing",10000000],UNIT["Meter",1]]
-arcpy.MosaicToNewRaster_management(rasters, ws, outputH, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, outputH, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
 
 
 ## Calculate metascores for each ES
