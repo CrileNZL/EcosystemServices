@@ -1,7 +1,7 @@
 ## Calculate ecosystem services layers and metascores for individual ES rasters
 ## Combines Cooling.py, Nitrogen.py, Laca.py and metascores.py into one script
 ## Developed for Richard Morris
-## C. Doscher October 2022
+## C. Doscher October 2022 - Updated 7 Nov 2022
 
 import arcpy
 # from arcpy.ia import RasterCalculator
