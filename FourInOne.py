@@ -4,7 +4,7 @@
 # C. Doscher October 2022 - Updated 7 Nov 2022
 
 import arcpy
-# from arcpy.ia import RasterCalculator
+
 import math
 
 from arcpy.sa import *
@@ -44,12 +44,10 @@ arcpy.CheckOutExtension("Spatial")
 arcpy.Near_analysis(inputFC, inputFC)
 
 # Create distance grids for use in ES code
-# can I do this in one script given minimmum clump size in Cooling.py?
 with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', 'd', 'NEAR_DIST']) as cursor:
     for row in cursor:
 
         # Set up loop
-        # while row: # don't know how many features the input will have
         # for each feature, derive distance grid - Euclidean Distance
         # get FID here for iterating
         fid = row[0]
@@ -128,11 +126,17 @@ proj = arcpy.SpatialReference(2193)
 arcpy.MosaicToNewRaster_management(rasters, ws, outputHFT, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
 
 # Create Control rasters
-# Nitrogen control
+# Nitrogen control - uses all SPUs
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "NC.tif", "CELL_CENTER", "", cellSize)
 # use Con to change NoData values to 0 and existing values to NoData
 nCon = Con((IsNull("NC.tif")), 0, Raster("NC.tif"))
 nCon.save("NControl.tif")
+
+# Nitrogen mask here
+arcpy.PolygonToRaster_conversion(inputFC, "OBJECTID", "clumpras.tif", "CELL_CENTER", "", cellSize)
+# use Con to change NoData values to 0 and change existing values to NoData
+mask = Con(IsNull("clumpras.tif"), 0)
+mask.save("Mask.tif")
 
 # Cooling and Bellbird Habitat control
 whereClause1 = "Shape_Area >= 15000"
@@ -143,6 +147,11 @@ cC = Con(IsNull("CC.tif"), 0, Raster("CC.tif"))
 cC.save("CControl.tif")
 cC.save("HBBControl.tif")
 
+# create Cooling and Bellbird mask
+arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "CCM.tif", "CELL_CENTER", "", 5)
+cCM = Con(IsNull("CCM.tif"), 0)
+cCM.save("CCmask.tif")
+
 # Fantail Habitat control
 whereClause2 = "Shape_Area >= 15000 or (Shape_Area < 15000 and (NEAR_DIST <= 150 and NEAR_DIST > 0))"
 arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause2)
@@ -151,65 +160,39 @@ arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "HFTC.tif", "CELL_CENTER
 hFTC = Con(IsNull("HFTC.tif"), 0, Raster("HFTC.tif"))
 hFTC.save("HFTControl.tif")
 
+# create Fantail habitat mask here
+arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "HFTCM.tif", "CELL_CENTER", "", 5)
+hFTCM = Con(IsNull("HFTCM.tif"), 0)
+hFTCM.save("HFTCmask.tif")
+
 arcpy.SelectLayerByAttribute_management(inputFC, "CLEAR_SELECTION")
 
-# Calculate metascores for each ES
-# Need this to loop through each ES output raster
-# Each ES needs a custom mask
-
-# Nitrogen ES metascore calculation
-# create Nitrogen mask
-arcpy.PolygonToRaster_conversion(inputFC, "OBJECTID", "clumpras.tif", "CELL_CENTER", "", cellSize)
-# use Con to change NoData values to 0 and change existing values to NoData
-mask = Con((IsNull("clumpras.tif")), 0)
-mask.save("Mask.tif")
-# Set this layer as the mask
+# Calculate Nitrogen and control metascore DBFs using mask
 arcpy.env.mask = mask
-
-# Calculate ES metascore DBFs using mask
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
+arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster("NControl.tif"), outName + "_MSNControl.dbf", "DATA", "SUM")
+
+# Calculate Cooling and Bellbird can control metascore DBFs using cCM mask
+arcpy.env.mask = cCM
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHBB), outName + "_MSBBHabitat.dbf", "DATA", "SUM")
-arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHFT), outName + "_MSFTHabitat.dbf", "DATA", "SUM")
+arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster("HBBControl.tif"), outName + "_MSBBControl.dbf",
+                                    "DATA", "SUM")
 if arcpy.Exists(Raster(outputC)):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
+    arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster("CControl.tif"), outName + "_MSCControl.dbf", "DATA",
+                                    "SUM")
 
 # Calculate control metascorese.  Skip C if it doesn't exist
 # need a custom mask for each ES - Nitrogen can use the already existing mask from above
-arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster("NControl.tif"), outName + "_MSNControl.dbf", "DATA", "SUM")
-
-# Cooling and Bellbird control metascores will be the same
-whereClause1 = "Shape_Area >= 15000"
-arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
-arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "CCmask.tif", "CELL_CENTER", "", cellSize)
-cC2 = Con(IsNull("CCmask.tif"), 0)
-cC2.save("CControlMS.tif")
-arcpy.env.mask = cC2
-
-if arcpy.Exists(Raster("CControl.tif")):
-    outZS = arcpy.sa.ZonalStatistics(boundary, "OBJECTID", Raster("CControl.tif"), "SUM")
-    outZS.save(outName + "ZS.tif")
-    arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster("CControl.tif"), outName + "_MSCControl.dbf", "DATA", "SUM")
-    arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster("HBBControl.tif"), outName + "_MSBBControl.dbf",
-                                    "DATA", "SUM")
-
-# Fantail control metascore
-whereClause2 = "Shape_Area >= 15000 or (Shape_Area < 15000 and (NEAR_DIST <= 150 and NEAR_DIST > 0))"
-arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause2)
-arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "HFTCmask.tif", "CELL_CENTER", "", cellSize)
-hFTCmask = Con(IsNull("HFTCmask.tif"), 0)
-hFTCmask.save("HFTControlMS.tif")
-arcpy.env.mask = hFTCmask
-
+arcpy.env.mask = hFTCM
+arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHFT), outName + "_MSFTHabitat.dbf", "DATA", "SUM")
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster("HFTControl.tif"), outName + "_MSFTControl.dbf", "DATA", "SUM")
-
 
 # Clean up
 # Delete distance and individual ES grids
-# for ras in arcpy.ListRasters("*", "TIF"):
-#         if not ras.startswith(outName):
-#                 arcpy.Delete_management(ras)
-# oldRasters = arcpy.ListRasters("", "TIF")
-# for ras in oldRasters:
-#         arcpy.Delete_management(ras)
+for ras in arcpy.ListRasters("*", "TIF"):
+        if not ras.startswith(outName):
+                arcpy.Delete_management(ras)
+
 
 arcpy.CheckInExtension("Spatial")
