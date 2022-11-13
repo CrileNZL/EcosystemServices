@@ -70,7 +70,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 # Cooling and Bellbird habitat here
         if row[2] >= 15000:
                 cc = float(row[3])
-                d = float((row[2]/math.pi)**0.5)
+                d = 2 * float((row[2]/math.pi)**0.5)
                 ha = float(row[2])/10000
                 coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
                 coolOut.save("cool_" + str(fid) + ".tif")
