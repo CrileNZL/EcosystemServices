@@ -32,18 +32,23 @@ cC = Con(IsNull("CC.tif"), 0, Raster("CC.tif"))
 cC.save("CControl.tif")
 cC.save("HBBControl.tif")
 
+whereClause2 = "Shape_Area < 15000"
+arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause2)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "CCM.tif", "CELL_CENTER", "", 5)
 cCM = Con(IsNull("CCM.tif"), 0)
 cCM.save("CCmask.tif")
 
 # Fantail Habitat
-whereClause2 = "Shape_Area >= 15000 or (Shape_Area < 15000 and (NEAR_DIST <= 150 and NEAR_DIST > 0))"
-arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause2)
+whereClause3 = "Shape_Area >= 15000 or (Shape_Area < 15000 and (NEAR_DIST <= 150 and NEAR_DIST > 0))"
+arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause3)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "HFTC.tif", "CELL_CENTER", "", 5)
 # use Con to change NoData values to 0 and existing values to NoData
 hFTC = Con((IsNull("HFTC.tif")), 0, Raster("HFTC.tif"))
 hFTC.save("HFTControl.tif")
 
+
+whereClause4 = "Shape_Area < 15000 and NEAR_DIST > 150"
+arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause4)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "HFTCM.tif", "CELL_CENTER", "", 5)
 hFTCM = Con(IsNull("HFTCM.tif"), 0)
 hFTCM.save("HFTCmask.tif")
