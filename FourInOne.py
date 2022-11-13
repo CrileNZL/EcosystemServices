@@ -117,13 +117,13 @@ arcpy.MosaicToNewRaster_management(rasters, ws, outputN, proj, "32_BIT_FLOAT", c
 rasters = arcpy.ListRasters("lacaBB*", "TIF")
 outputHBB = outName + "_habitatBB.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, outputHBB, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, outputHBB, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 
 # Fantail  Habitat MS raster
 rasters = arcpy.ListRasters("lacaFT*", "TIF")
 outputHFT = outName + "_habitatFT.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, outputHFT, proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, outputHFT, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 
 # Create Control rasters
 # Nitrogen control - uses all SPUs
@@ -133,10 +133,10 @@ nCon = Con((IsNull("NC.tif")), 0, Raster("NC.tif"))
 nCon.save("NControl.tif")
 
 # Nitrogen mask here
-arcpy.PolygonToRaster_conversion(inputFC, "OBJECTID", "clumpras.tif", "CELL_CENTER", "", cellSize)
+# arcpy.PolygonToRaster_conversion(inputFC, "OBJECTID", "clumpras.tif", "CELL_CENTER", "", cellSize)
 # use Con to change NoData values to 0 and change existing values to NoData
-mask = Con(IsNull("clumpras.tif"), 0)
-mask.save("Mask.tif")
+# mask = Con(IsNull("clumpras.tif"), 0)
+# mask.save("Mask.tif")
 
 # Cooling and Bellbird Habitat control
 whereClause1 = "Shape_Area >= 15000"
@@ -148,19 +148,23 @@ cC.save("CControl.tif")
 cC.save("HBBControl.tif")
 
 # create Cooling and Bellbird mask
+whereClause2 = "Shape_Area < 15000"
+arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause2)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "CCM.tif", "CELL_CENTER", "", 5)
 cCM = Con(IsNull("CCM.tif"), 0)
 cCM.save("CCmask.tif")
 
 # Fantail Habitat control
-whereClause2 = "Shape_Area >= 15000 or (Shape_Area < 15000 and (NEAR_DIST <= 150 and NEAR_DIST > 0))"
-arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause2)
+whereClause3 = "Shape_Area >= 15000 or (Shape_Area < 15000 and (NEAR_DIST <= 150 and NEAR_DIST > 0))"
+arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause3)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "HFTC.tif", "CELL_CENTER", "", cellSize)
 # use Con to change NoData values to 0 and existing values to NoData
 hFTC = Con(IsNull("HFTC.tif"), 0, Raster("HFTC.tif"))
 hFTC.save("HFTControl.tif")
 
 # create Fantail habitat mask here
+whereClause4 = "Shape_Area < 15000 and NEAR_DIST > 150"
+arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause4)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "HFTCM.tif", "CELL_CENTER", "", 5)
 hFTCM = Con(IsNull("HFTCM.tif"), 0)
 hFTCM.save("HFTCmask.tif")
@@ -168,7 +172,7 @@ hFTCM.save("HFTCmask.tif")
 arcpy.SelectLayerByAttribute_management(inputFC, "CLEAR_SELECTION")
 
 # Calculate Nitrogen and control metascore DBFs using mask
-arcpy.env.mask = mask
+# arcpy.env.mask = mask
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster("NControl.tif"), outName + "_MSNControl.dbf", "DATA", "SUM")
 
