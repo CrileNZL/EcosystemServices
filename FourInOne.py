@@ -1,7 +1,7 @@
 # Calculate ecosystem services layers and metascores for individual ES rasters
 # Combines Cooling.py, Nitrogen.py, Laca.py and metascores.py into one script
 # Developed for Richard Morris
-# C. Doscher October 2022 - Updated 7 Nov 2022
+# C. Doscher October 2022 - Updated 14 Nov 2022
 
 import arcpy
 
@@ -85,7 +85,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
         nOut.save("N_" + str(fid) + ".tif")
 
 
-# Fantail Habitat here - include SPUs greater than 1.5 ha and within
+# Fantail Habitat here - include SPUs greater than 1.5 ha and within 150 m of another SPU of any size
         if(row[2] < 15000 and row[5] < 150.0) or row[2] >= 15000:
                 dcalcFT = 50.0
                 lacaFTOut = Con(distIn <= dcalcFT, ((1/dcalcFT)*1.094*(1 - (1/dcalcFT)**2*Raster(distIn)**2)**3), 0)
@@ -117,7 +117,8 @@ arcpy.MosaicToNewRaster_management(rasters, ws, outputN, proj, "32_BIT_FLOAT", c
 rasters = arcpy.ListRasters("lacaBB*", "TIF")
 outputHBB = outName + "_habitatBB.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, outputHBB, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+if len(rasterList) > 0:
+    arcpy.MosaicToNewRaster_management(rasters, ws, outputHBB, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 
 # Fantail  Habitat MS raster
 rasters = arcpy.ListRasters("lacaFT*", "TIF")

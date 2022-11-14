@@ -17,13 +17,13 @@ outName = "Test"
 
 # Create control grids here
 
-# Nitrogen
+# Nitrogen  and control
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "NC.tif", "CELL_CENTER", "", 5)
 # use Con to change NoData values to 0 and existing values to NoData
 nCon = Con(IsNull("NC.tif"), 0, Raster("NC.tif"))
 nCon.save("NControl.tif")
 
-# Cooling and Bellbird Habitat
+# Cooling and Bellbird Habitat and controls
 whereClause1 = "Shape_Area >= 15000"
 arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "CC.tif", "CELL_CENTER", "", 5)
@@ -38,7 +38,7 @@ arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "CCM.tif", "CELL_CENTER"
 cCM = Con(IsNull("CCM.tif"), 0)
 cCM.save("CCmask.tif")
 
-# Fantail Habitat
+# Fantail Habitat and control
 whereClause3 = "Shape_Area >= 15000 or (Shape_Area < 15000 and (NEAR_DIST <= 150 and NEAR_DIST > 0))"
 arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause3)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "HFTC.tif", "CELL_CENTER", "", 5)
