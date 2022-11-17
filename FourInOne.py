@@ -154,8 +154,10 @@ ncCalc.save(outName + "_Ncontrol.tif")
 whereClause1 = "Shape_Area >= 15000"
 arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
 ccDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
-ccCalc = Con(ccDist <= 0, ha * cc * Exp(Raster(-1 * ccDist)/d), 0)
-ccCalc.save(outName + "_CoolControl.tif")
+ccCalc = Con(ccDist <= 0, (ha * cc * Exp(Raster(-1 * ccDist)/d)), 0)
+inConstant = 0.75
+outTimes = Times(ccCalc, inConstant)
+outTimes.save(outName + "_CoolControl.tif")
 
 bbCalc = Con(ccDist <= 0, ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(ccDist) ** 2) ** 3), 0)
 bbCalc.save(outName + "_BBcontrol.tif")
@@ -174,8 +176,7 @@ arcpy.SelectLayerByAttribute_management(inputFC, "CLEAR_SELECTION")
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_Ncontrol.tif"), outName + "_MSNControl.dbf", "DATA", "SUM")
 
-# Calculate Cooling and Bellbird can control metascore DBFs using cCM mask
-# arcpy.env.mask = cCM
+# Calculate Cooling and Bellbird  control metascore DBFs
 if arcpy.Exists(outputC):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHBB), outName + "_MSBBHabitat.dbf", "DATA", "SUM")
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName  + "_BBcontrol.tif"), outName + "_MSBBControl.dbf",
@@ -184,7 +185,7 @@ if arcpy.Exists(outputC):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_CoolControl.tif"), outName + "_MSCControl.dbf", "DATA",
                                     "SUM")
 
-# Calculate control metascorese.  Skip C if it doesn't exist
+# Calculate control metascores.  Skip C if it doesn't exist
 # need a custom mask for each ES - Nitrogen can use the already existing mask from above
 # arcpy.env.mask = hFTCM
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHFT), outName + "_MSFTHabitat.dbf", "DATA", "SUM")
