@@ -1,7 +1,7 @@
 # Calculate ecosystem services layers and metascores for individual ES rasters
 # Combines Cooling.py, Nitrogen.py, Laca.py and metascores.py into one script
 # Developed for Richard Morris
-# C. Doscher October 2022 - Updated 16 Nov 2022
+# C. Doscher October 2022 - Updated 18 Nov 2022
 
 import arcpy
 
@@ -43,6 +43,7 @@ arcpy.env.extent = boundary
 # Get cell size from user
 # get cellsize from user
 cellSize = arcpy.GetParameterAsText(4)
+cellSizeHa = (float(cellSize)**2)/10000.0
 
 # get output file name from user
 outName = arcpy.GetParameterAsText(5)
@@ -83,8 +84,8 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
         if row[2] >= 15000:
                 cc = float(row[3])
                 d = 2 * float((row[2]/math.pi)**0.5)
-                ha = float(row[2])/10000
-                coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
+                # ha = float(row[2])/10000
+                coolOut = cellSizeHa * cc * Exp(Raster(-1 * distIn)/d)
                 coolOut.save("cool_" + str(fid) + ".tif")
 
                 # dcalcBB = 500.00
@@ -114,7 +115,7 @@ proj = arcpy.SpatialReference(2193)
 if len(rasterList) > 0:
         # outputC = outName + "_cool.tif"
         # proj = arcpy.SpatialReference(2193)
-        arcpy.MosaicToNewRaster_management(rasterList, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "MAXIMUM")
+        arcpy.MosaicToNewRaster_management(rasterList, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
         inConstant = 0.75
         outTimes = Times(Raster("midcool.tif"), inConstant)
         outTimes.save(outputC)
@@ -153,13 +154,16 @@ ncCalc.save(outName + "_Ncontrol.tif")
 # Cooling and Bellbird Habitat control ES calculation - uses subset of SPUs
 whereClause1 = "Shape_Area >= 15000"
 arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
-ccDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
-ccCalc = Con(ccDist <= 0, (ha * cc * Exp(Raster(-1 * ccDist)/100)), 0)
+# ccDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
+arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "ccPoly.tif", "CELL_CENTER", "", cellSize)
+
+ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (cellSizeHa * 10))
+# ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (Raster("ccPoly.tif")/10000 * 10))
 inConstant = 0.75
 outTimes = Times(ccCalc, inConstant)
 outTimes.save(outName + "_CoolControl.tif")
 
-bbCalc = Con(ccDist <= 0, ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(ccDist) ** 2) ** 3), 0)
+bbCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (1 / dcalcBB) * 1.094)
 bbCalc.save(outName + "_BBcontrol.tif")
 
 # Fantail Habitat control and ES calculation
