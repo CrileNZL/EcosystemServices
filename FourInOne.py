@@ -1,7 +1,7 @@
 # Calculate ecosystem services layers and metascores for individual ES rasters
 # Combines Cooling.py, Nitrogen.py, Laca.py and metascores.py into one script
 # Developed for Richard Morris
-# C. Doscher October 2022 - Updated 22 Nov 2022
+# C. Doscher October 2022 - Updated 23 Nov 2022
 
 import arcpy
 
@@ -84,7 +84,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
         if row[2] >= 15000:
                 cc = float(row[3])
                 radius = float((row[2] / math.pi)**0.5)
-                if row[2] == 4980.975961:
+                if row[2] > 4000.00 and row[2] < 5000.00:
                     d = 2 * radius/1.75
                 else:
                     d = 2 * radius
@@ -162,7 +162,7 @@ arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
 # ccDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "ccPoly.tif", "CELL_CENTER", "", cellSize)
 
-ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (ha * 10))
+ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, ((Raster("ccPoly.tif")/10000) * 10))
 # ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (Raster("ccPoly.tif")/10000 * 10))
 inConstant = 0.75
 outTimes = Times(ccCalc, inConstant)
@@ -188,7 +188,7 @@ arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_Ncontro
 # Calculate Cooling and Bellbird  control metascore DBFs
 if arcpy.Exists(outputC):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHBB), outName + "_MSBBHabitat.dbf", "DATA", "SUM")
-    arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName  + "_BBcontrol.tif"), outName + "_MSBBControl.dbf",
+    arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_BBcontrol.tif"), outName + "_MSBBControl.dbf",
                                         "DATA", "SUM")
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_CoolControl.tif"), outName + "_MSCControl.dbf", "DATA",
@@ -202,9 +202,9 @@ arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_FTcontr
 
 # Clean up
 # Delete distance and individual ES grids
-for ras in arcpy.ListRasters("*", "TIF"):
-        if not ras.startswith(outName):
-                arcpy.Delete_management(ras)
+# for ras in arcpy.ListRasters("*", "TIF"):
+        # if not ras.startswith(outName):
+                # arcpy.Delete_management(ras)
 
 
 arcpy.CheckInExtension("Spatial")
