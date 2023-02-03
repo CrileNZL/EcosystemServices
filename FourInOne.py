@@ -1,7 +1,7 @@
 # Calculate ecosystem services layers and metascores for individual ES rasters
 # Combines Cooling.py, Nitrogen.py, Laca.py and metascores.py into one script
 # Developed for Richard Morris
-# C. Doscher October 2022 - Updated 23 Nov 2022
+# C. Doscher October 2022 - Updated 3 Feb 2023
 
 import arcpy
 
@@ -202,9 +202,9 @@ arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_FTcontr
 
 # Clean up
 # Delete distance and individual ES grids
-# for ras in arcpy.ListRasters("*", "TIF"):
-        # if not ras.startswith(outName):
-                # arcpy.Delete_management(ras)
+for ras in arcpy.ListRasters("*", "TIF"):
+        if not ras.startswith(outName):
+                arcpy.Delete_management(ras)
 
 
 arcpy.CheckInExtension("Spatial")
