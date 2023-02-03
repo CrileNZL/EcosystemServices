@@ -81,7 +81,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 
 # Calculate individual ESs
 # Cooling and Bellbird habitat here
-        if row[2] >= 15000:
+        if row[2] >= 4900:
                 cc = float(row[3])
                 radius = float((row[2] / math.pi)**0.5)
                 if row[2] > 4000.00 and row[2] < 5000.00:
