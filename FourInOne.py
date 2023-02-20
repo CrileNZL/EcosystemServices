@@ -157,7 +157,7 @@ ncCalc = Con(ncDist <= 0, (-3.9 * ncDist ** 3 + 89.1 * ncDist ** 2 - (814.5 * nc
 ncCalc.save(outName + "_Ncontrol.tif")
 
 # Cooling and Bellbird Habitat control ES calculation - uses subset of SPUs
-whereClause1 = "Shape_Area >= 15000"
+whereClause1 = "Shape_Area >= 4900"
 arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
 # ccDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "ccPoly.tif", "CELL_CENTER", "", cellSize)
