@@ -91,7 +91,8 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 
                 ha = float(row[2])/10000
                 coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
-                coolOut.save("cool_" + str(fid) + ".tif")
+                coolOverlap = 30 / (1 + Exp(4.365 - coolOut))
+                coolOverlap.save("cool_" + str(fid) + ".tif")
 
                 # dcalcBB = 500.00
                 lacaBBOut = Con(distIn <= dcalcBB,
