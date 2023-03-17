@@ -165,6 +165,9 @@ arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
 # ccDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "ccPoly.tif", "CELL_CENTER", "", cellSize)
 
+ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (float(row[3] * float(row[2])/10000)))
+ccCalc.save(outName + "_CoolControl.tif")
+
 bbCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (1 / dcalcBB) * 1.094)
 bbCalc.save(outName + "_BBcontrol.tif")
 
