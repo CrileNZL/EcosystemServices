@@ -123,8 +123,9 @@ if len(rasterList) > 0:
         arcpy.MosaicToNewRaster_management(rasterList, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
         inConstant = 0.75
         outTimes = Times(Raster("midcool.tif"), inConstant)
-        outTimes.save("tempcool.tif")
-        coolOverlap = 30 / (1 + Exp(4.365 - Raster("tempcool.tif"))
+        outTimes.save("timescool.tif")
+        # coolOverlap = 30 / (1 + Exp(4.365 - Raster("timescool.tif"))
+        coolOverlap = Raster(30 / (1 + Exp(4.365 - outTimes)))
         coolOverlap.save(outputC)
 
 # Nitrogen MS raster
