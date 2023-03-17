@@ -91,8 +91,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 
                 ha = float(row[2])/10000
                 coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
-                coolOverlap = 30 / (1 + Exp(4.365 - coolOut))
-                coolOverlap.save("cool_" + str(fid) + ".tif")
+                coolOut.save("cool_" + str(fid) + ".tif")
 
                 # dcalcBB = 500.00
                 lacaBBOut = Con(distIn <= dcalcBB,
@@ -124,7 +123,9 @@ if len(rasterList) > 0:
         arcpy.MosaicToNewRaster_management(rasterList, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
         inConstant = 0.75
         outTimes = Times(Raster("midcool.tif"), inConstant)
-        outTimes.save(outputC)
+        outTimes.save("tempcool.tif")
+        coolOverlap = 30 / (1 + Exp(4.365 - Raster("tempcool.tif"))
+        coolOverlap.save(outputC)
 
 # Nitrogen MS raster
 rasters = arcpy.ListRasters("N_*", "TIF")
@@ -162,12 +163,6 @@ whereClause1 = "Shape_Area >= 4900"
 arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
 # ccDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "ccPoly.tif", "CELL_CENTER", "", cellSize)
-
-ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, ((Raster("ccPoly.tif")/10000) * 10))
-# ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (Raster("ccPoly.tif")/10000 * 10))
-inConstant = 0.75
-outTimes = Times(ccCalc, inConstant)
-outTimes.save(outName + "_CoolControl.tif")
 
 bbCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (1 / dcalcBB) * 1.094)
 bbCalc.save(outName + "_BBcontrol.tif")
