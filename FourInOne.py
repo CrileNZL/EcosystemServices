@@ -1,7 +1,7 @@
 # Calculate ecosystem services layers and metascores for individual ES rasters
 # Combines Cooling.py, Nitrogen.py, Laca.py and metascores.py into one script
 # Developed for Richard Morris
-# C. Doscher October 2022 - Updated 17 March 2023
+# C. Doscher October 2022 - Updated 25 March 2023
 
 import arcpy
 
@@ -34,19 +34,24 @@ arcpy.env.workspace = ws
 # arcpy.env.extent = arcpy.GetParameterAsText(3)
 
 # get value of d from user
-species = arcpy.GetParameterAsText(2)
+# species = arcpy.GetParameterAsText(2)
+# EL model parameters for cooling
+asymC = arcpy.GetParameterAsText(2)
+midC = arcpy.GetParameterAsText(3)
+kC = arcpy.GetParameterAsText(4)
+
 
 # Get boundary zone FC from user
-boundary = arcpy.GetParameterAsText(3)
+boundary = arcpy.GetParameterAsText(5)
 arcpy.env.extent = boundary
 
 # Get cell size from user
 # get cellsize from user
-cellSize = arcpy.GetParameterAsText(4)
+cellSize = arcpy.GetParameterAsText(6)
 # cellSizeHa = (float(cellSize)**2)/10000.0
 
 # get output file name from user
-outName = arcpy.GetParameterAsText(5)
+outName = arcpy.GetParameterAsText(7)
 
 dcalcBB = 500.0
 dcalcFT = 50.0
@@ -123,9 +128,10 @@ if len(rasterList) > 0:
         arcpy.MosaicToNewRaster_management(rasterList, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
         inConstant = 0.75
         outTimes = Times(Raster("midcool.tif"), inConstant)
-        outTimes.save("timescool.tif")
+        outTimes.save(outName + "_timescool.tif")
         # coolOverlap = 30 / (1 + Exp(4.365 - Raster("timescool.tif"))
-        coolOverlap = Raster(30 / (1 + Exp(4.365 - outTimes)))
+        # user inputs values for ASYM, MID and k
+        coolOverlap = Raster(asymC / (1 + Exp((midC - outTimes)/kC)))
         coolOverlap.save(outputC)
 
 # Nitrogen MS raster
