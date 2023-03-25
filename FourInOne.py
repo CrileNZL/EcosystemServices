@@ -40,18 +40,33 @@ asymC = float(arcpy.GetParameterAsText(2))
 midC = float(arcpy.GetParameterAsText(3))
 kC = float(arcpy.GetParameterAsText(4))
 
+# EL model parameters for nitrogen
+asymN = float(arcpy.GetParameterAsText(5))
+midN = float(arcpy.GetParameterAsText(6))
+kN = float(arcpy.GetParameterAsText(7))
+
+# EL model parametersf for Bellbirds
+asymBB = float(arcpy.GetParameterAsText(8))
+midBB = float(arcpy.GetParameterAsText(9))
+kBB = float(arcpy.GetParameterAsText(10))
+
+# EL parameters for Fantails
+asymFT = float(arcpy.GetParameterAsText(11))
+midFT = float(arcpy.GetParameterAsText(12))
+kFT = float(arcpy.GetParameterAsText(13))
+
 
 # Get boundary zone FC from user
-boundary = arcpy.GetParameterAsText(5)
+boundary = arcpy.GetParameterAsText(14)
 arcpy.env.extent = boundary
 
 # Get cell size from user
 # get cellsize from user
-cellSize = arcpy.GetParameterAsText(6)
+cellSize = arcpy.GetParameterAsText(15)
 # cellSizeHa = (float(cellSize)**2)/10000.0
 
 # get output file name from user
-outName = arcpy.GetParameterAsText(7)
+outName = arcpy.GetParameterAsText(16)
 
 dcalcBB = 500.0
 dcalcFT = 50.0
@@ -136,16 +151,26 @@ if len(rasterList) > 0:
 
 # Nitrogen MS raster
 rasters = arcpy.ListRasters("N_*", "TIF")
+midN = outName + "-midN.tif"
 outputN = outName + "_nitrogen.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, outputN, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, midN, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+# Use EL model for nonlinear effects - parameters set by user
+ELNitrogen = asymN / (1 + Exp((midN - Raster(midN))/kN))
+ELNitrogen.save(outputN)
+
 
 # Bellbird Habitat MS raster
 rasters = arcpy.ListRasters("lacaBB*", "TIF")
+midHBB = outName + "_midHBB.tif"
 outputHBB = outName + "_habitatBB.tif"
 proj = arcpy.SpatialReference(2193)
 if len(rasterList) > 0:
-    arcpy.MosaicToNewRaster_management(rasters, ws, outputHBB, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+    arcpy.MosaicToNewRaster_management(rasters, ws, midHBB, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+# Use EL Model for nonlinear effects - user supplies parameters
+ELHBB = asymBB / (1 + Exp((midBB - Raster(midHBB))/kBB))
+ELHBB.save(outputHBB)
+
 
 # Fantail  Habitat MS raster
 rasters = arcpy.ListRasters("lacaFT*", "TIF")
