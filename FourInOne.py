@@ -36,9 +36,9 @@ arcpy.env.workspace = ws
 # get value of d from user
 # species = arcpy.GetParameterAsText(2)
 # EL model parameters for cooling
-asymC = arcpy.GetParameterAsText(2)
-midC = arcpy.GetParameterAsText(3)
-kC = arcpy.GetParameterAsText(4)
+asymC = float(arcpy.GetParameterAsText(2))
+midC = float(arcpy.GetParameterAsText(3))
+kC = float(arcpy.GetParameterAsText(4))
 
 
 # Get boundary zone FC from user
