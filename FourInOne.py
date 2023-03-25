@@ -131,7 +131,7 @@ if len(rasterList) > 0:
         outTimes.save(outName + "_timescool.tif")
         # coolOverlap = 30 / (1 + Exp(4.365 - Raster("timescool.tif"))
         # user inputs values for ASYM, MID and k
-        coolOverlap = Raster(asymC / (1 + Exp((midC - outTimes)/kC)))
+        coolOverlap = asymC / (1 + Exp((midC - Raster(outTimes))/kC))
         coolOverlap.save(outputC)
 
 # Nitrogen MS raster
