@@ -101,7 +101,8 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 
 # Calculate individual ESs
 # Cooling and Bellbird habitat here
-        if row[2] >= 4900:
+        # select all SPUs great than 4900 m2 in area and those smaller that are within 2*D of another SPU
+        if row[2] >= 4900 or (row[2] < 4900 and row[5] <= float((row[2] / math.pi)**0.5)):
                 cc = float(row[3])
                 radius = float((row[2] / math.pi)**0.5)
                 if row[2] > 4000.00 and row[2] < 5000.00:
@@ -143,7 +144,7 @@ if len(rasterList) > 0:
         arcpy.MosaicToNewRaster_management(rasterList, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
         inConstant = 0.75
         outTimes = Times(Raster("midcool.tif"), inConstant)
-        outTimes.save(outName + "_timescool.tif")
+        outTimes.save(outName + "_baseCooling.tif")
         # coolOverlap = 30 / (1 + Exp(4.365 - Raster("timescool.tif"))
         # user inputs values for ASYM, MID and k
         coolOverlap = asymC / (1 + Exp((midC - Raster(outTimes))/kC))
@@ -151,7 +152,7 @@ if len(rasterList) > 0:
 
 # Nitrogen MS raster
 rasters = arcpy.ListRasters("N_*", "TIF")
-midN = outName + "-midN.tif"
+midN = outName + "_baseNitrogen.tif"
 outputN = outName + "_nitrogen.tif"
 proj = arcpy.SpatialReference(2193)
 arcpy.MosaicToNewRaster_management(rasters, ws, midN, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
@@ -162,8 +163,8 @@ ELNitrogen.save(outputN)
 
 # Bellbird Habitat MS raster
 rasters = arcpy.ListRasters("lacaBB*", "TIF")
-midHBB = outName + "_midHBB.tif"
-outputHBB = outName + "_habitatBB.tif"
+midHBB = outName + "_baseBellbirdHabitat.tif"
+outputHBB = outName + "_BellbirdHabitat.tif"
 proj = arcpy.SpatialReference(2193)
 if len(rasterList) > 0:
     arcpy.MosaicToNewRaster_management(rasters, ws, midHBB, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
@@ -174,9 +175,12 @@ ELHBB.save(outputHBB)
 
 # Fantail  Habitat MS raster
 rasters = arcpy.ListRasters("lacaFT*", "TIF")
-outputHFT = outName + "_habitatFT.tif"
+midFT = outName + "_baseFantailHabitat.tif"
+outputHFT = outName + "_FantailHabitat.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, outputHFT, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, midFT, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+ELHFT = asymFT / (1 + Exp((midFT - Raster(midHBB))/kFT))
+ELHFT.save(outputHFT)
 
 # Create Control rasters
 # Nitrogen control - uses all SPUs
