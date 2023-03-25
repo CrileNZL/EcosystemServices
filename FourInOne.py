@@ -161,50 +161,50 @@ arcpy.MosaicToNewRaster_management(rasters, ws, outputHFT, proj, "32_BIT_FLOAT",
 # nCon.save("NControl.tif")
 
 # Nitrogen control and ES calculation - uses all SPUs
-ncDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
-ncCalc = Con(ncDist <= 0, (-3.9 * ncDist ** 3 + 89.1 * ncDist ** 2 - (814.5 * ncDist) + 2968), 0)
-ncCalc.save(outName + "_Ncontrol.tif")
-
-# Cooling and Bellbird Habitat control ES calculation - uses subset of SPUs
-whereClause1 = "Shape_Area >= 4900"
-arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
-# ccDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
-arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "ccPoly.tif", "CELL_CENTER", "", cellSize)
-
-ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (10 * Raster("ccPoly.tif")))
-ccCalc.save(outName + "_CoolControl.tif")
-
-bbCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (1 / dcalcBB) * 1.094)
-bbCalc.save(outName + "_BBcontrol.tif")
-
-# Fantail Habitat control and ES calculation
-whereClause2 = "Shape_Area >= 15000 or (Shape_Area < 15000 and (NEAR_DIST <= 150 and NEAR_DIST > 0))"
-arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause2)
-ftDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
-ftCalc = Con(ftDist <= 0, ((1/dcalcFT)*1.094*(1 - (1/dcalcFT)**2*Raster(ftDist)**2)**3), 0)
-ftCalc.save(outName + "_FTcontrol.tif")
-
-arcpy.SelectLayerByAttribute_management(inputFC, "CLEAR_SELECTION")
+# ncDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
+# ncCalc = Con(ncDist <= 0, (-3.9 * ncDist ** 3 + 89.1 * ncDist ** 2 - (814.5 * ncDist) + 2968), 0)
+# ncCalc.save(outName + "_Ncontrol.tif")
+#
+# # Cooling and Bellbird Habitat control ES calculation - uses subset of SPUs
+# whereClause1 = "Shape_Area >= 4900"
+# arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause1)
+# # ccDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
+# arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "ccPoly.tif", "CELL_CENTER", "", cellSize)
+#
+# ccCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (10 * Raster("ccPoly.tif")))
+# ccCalc.save(outName + "_CoolControl.tif")
+#
+# bbCalc = Con(IsNull(Raster("ccPoly.tif")), 0, (1 / dcalcBB) * 1.094)
+# bbCalc.save(outName + "_BBcontrol.tif")
+#
+# # Fantail Habitat control and ES calculation
+# whereClause2 = "Shape_Area >= 15000 or (Shape_Area < 15000 and (NEAR_DIST <= 150 and NEAR_DIST > 0))"
+# arcpy.SelectLayerByAttribute_management(inputFC, "NEW_SELECTION", whereClause2)
+# ftDist = arcpy.sa.EucDistance(inputFC, "", cellSize)
+# ftCalc = Con(ftDist <= 0, ((1/dcalcFT)*1.094*(1 - (1/dcalcFT)**2*Raster(ftDist)**2)**3), 0)
+# ftCalc.save(outName + "_FTcontrol.tif")
+#
+# arcpy.SelectLayerByAttribute_management(inputFC, "CLEAR_SELECTION")
 
 # Calculate Nitrogen and control metascore DBFs using mask
 # arcpy.env.mask = mask
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
-arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_Ncontrol.tif"), outName + "_MSNControl.dbf", "DATA", "SUM")
+# arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_Ncontrol.tif"), outName + "_MSNControl.dbf", "DATA", "SUM")
 
 # Calculate Cooling and Bellbird  control metascore DBFs
 if arcpy.Exists(outputC):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHBB), outName + "_MSBBHabitat.dbf", "DATA", "SUM")
-    arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_BBcontrol.tif"), outName + "_MSBBControl.dbf",
-                                        "DATA", "SUM")
+    # arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_BBcontrol.tif"), outName + "_MSBBControl.dbf",
+                                        # "DATA", "SUM")
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
-    arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_CoolControl.tif"), outName + "_MSCControl.dbf", "DATA",
-                                    "SUM")
+    # arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_CoolControl.tif"), outName + "_MSCControl.dbf", "DATA",
+                                    # "SUM")
 
 # Calculate control metascores.  Skip C if it doesn't exist
 # need a custom mask for each ES - Nitrogen can use the already existing mask from above
 # arcpy.env.mask = hFTCM
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHFT), outName + "_MSFTHabitat.dbf", "DATA", "SUM")
-arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_FTcontrol.tif"), outName + "_MSFTControl.dbf", "DATA", "SUM")
+# arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_FTcontrol.tif"), outName + "_MSFTControl.dbf", "DATA", "SUM")
 
 # Clean up
 # Delete distance and individual ES grids
