@@ -102,7 +102,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 # Calculate individual ESs
 # Cooling and Bellbird habitat here
         # select all SPUs great than 4900 m2 in area and those smaller that are within 2*D of another SPU
-        if row[2] >= 4900 or (row[2] < 4900 and row[5] <= float(4 * (row[2] / math.pi)**0.5)):
+        if row[2] >= 4900 or (row[2] < 4900 and row[5] <= float(4 * ((row[2] / math.pi)**0.5))):
                 cc = float(row[3])
                 radius = float((row[2] / math.pi)**0.5)
                 if row[2] > 4000.00 and row[2] < 5000.00:
