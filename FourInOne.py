@@ -115,6 +115,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
                 coolOut.save("cool_" + str(fid) + ".tif")
 
                 # dcalcBB = 500.00
+        if row[2] >= 4900:
                 lacaBBOut = Con(distIn <= dcalcBB,
                                 ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(distIn) ** 2) ** 3), 0)
                 lacaBBOut.save("lacaBB_" + str(fid) + ".tif")
@@ -152,12 +153,12 @@ if len(rasterList) > 0:
 
 # Nitrogen MS raster
 rasters = arcpy.ListRasters("N_*", "TIF")
-midN = outName + "_baseNitrogen.tif"
+midNit = outName + "_baseNitrogen.tif"
 outputN = outName + "_nitrogen.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, midN, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+arcpy.MosaicToNewRaster_management(rasters, ws, midNit, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 # Use EL model for nonlinear effects - parameters set by user
-ELNitrogen = asymN / (1 + Exp((midN - Raster(midN))/kN))
+ELNitrogen = asymN / (1 + Exp((midN - Raster(midNit))/kN))
 ELNitrogen.save(outputN)
 
 
