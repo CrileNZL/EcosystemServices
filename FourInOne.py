@@ -238,9 +238,9 @@ arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHFT), outName
 
 # Clean up
 # Delete distance and individual ES grids
-for ras in arcpy.ListRasters("*", "TIF"):
-        if not ras.startswith(outName):
-                arcpy.Delete_management(ras)
+# for ras in arcpy.ListRasters("*", "TIF"):
+        # if not ras.startswith(outName):
+                # arcpy.Delete_management(ras)
 
 
 arcpy.CheckInExtension("Spatial")
