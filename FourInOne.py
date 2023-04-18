@@ -180,7 +180,7 @@ midFT = outName + "_baseFantailHabitat.tif"
 outputHFT = outName + "_FantailHabitat.tif"
 proj = arcpy.SpatialReference(2193)
 arcpy.MosaicToNewRaster_management(rasters, ws, midFT, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-ELHFT = asymFT / (1 + Exp((midFT - Raster(midHBB))/kFT))
+ELHFT = asymFT / (1 + Exp((midFT - Raster(midFT))/kFT))
 ELHFT.save(outputHFT)
 
 # Create Control rasters
