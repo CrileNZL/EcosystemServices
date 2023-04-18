@@ -1,7 +1,7 @@
 # Calculate ecosystem services layers and metascores for individual ES rasters
 # Combines Cooling.py, Nitrogen.py, Laca.py and metascores.py into one script
 # Developed for Richard Morris
-# C. Doscher October 2022 - Updated 5 April 2023
+# C. Doscher October 2022 - Updated 19 April 2023
 
 import arcpy
 
@@ -101,8 +101,8 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 
 # Calculate individual ESs
 # Cooling and Bellbird habitat here
-        # select all SPUs great than 4900 m2 in area and those smaller that are within 2*D of another SPU
-        if row[2] >= 4900 or (row[2] < 4900 and row[5] <= float(4 * ((row[2] / math.pi)**0.5))):
+        # select all SPUs great than 4900 m2 in area and those smaller that are within 2*R of another SPU
+        if row[2] >= 4900 or (row[2] < 4900 and row[5] <= float(2 * ((row[2] / math.pi)**0.5))):
                 cc = float(row[3])
                 radius = float((row[2] / math.pi)**0.5)
                 if row[2] > 4000.00 and row[2] < 5000.00:
@@ -115,7 +115,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
                 coolOut.save("cool_" + str(fid) + ".tif")
 
                 # dcalcBB = 500.00
-        if row[2] >= 4900:
+        if row[2] >= 20000:
                 lacaBBOut = Con(distIn <= dcalcBB,
                                 ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(distIn) ** 2) ** 3), 0)
                 lacaBBOut.save("lacaBB_" + str(fid) + ".tif")
@@ -126,7 +126,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 
 
 # Fantail Habitat here - include SPUs greater than 1.5 ha and within 150 m of another SPU of any size
-        if(row[2] < 15000 and row[5] < 150.0) or row[2] >= 15000:
+        if row[2] >= 15000 or (row[2] < 15000 and row[5] < 150.0):
                 # dcalcFT = 50.0
                 lacaFTOut = Con(distIn <= dcalcFT, ((1/dcalcFT)*1.094*(1 - (1/dcalcFT)**2*Raster(distIn)**2)**3), 0)
                 lacaFTOut.save("lacaFT_" + str(fid) + ".tif")
