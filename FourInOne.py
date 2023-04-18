@@ -169,7 +169,7 @@ outputHBB = outName + "_BellbirdHabitat.tif"
 proj = arcpy.SpatialReference(2193)
 if len(rasterList) > 0:
     arcpy.MosaicToNewRaster_management(rasters, ws, midHBB, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-# Use EL Model for nonlinear effects - user supplies parameters
+    # Use EL Model for nonlinear effects - user supplies parameters
     ELHBB = asymBB / (1 + Exp((midBB - Raster(midHBB))/kBB))
     ELHBB.save(outputHBB)
 
