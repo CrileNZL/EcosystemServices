@@ -164,23 +164,23 @@ ELNitrogen.save(outputN)
 
 # Bellbird Habitat MS raster
 rasters = arcpy.ListRasters("lacaBB*", "TIF")
-midHBB = outName + "_baseBellbirdHabitat.tif"
+midHBBras = outName + "_baseBellbirdHabitat.tif"
 outputHBB = outName + "_BellbirdHabitat.tif"
 proj = arcpy.SpatialReference(2193)
-if len(rasterList) > 0:
-    arcpy.MosaicToNewRaster_management(rasters, ws, midHBB, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+if len(rasters) > 0:
+    arcpy.MosaicToNewRaster_management(rasters, ws, midHBBras, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
     # Use EL Model for nonlinear effects - user supplies parameters
-    ELHBB = asymBB / (1 + Exp((midBB - Raster(midHBB))/kBB))
+    ELHBB = asymBB / (1 + Exp((midBB - Raster(midHBBras))/kBB))
     ELHBB.save(outputHBB)
 
 
 # Fantail  Habitat MS raster
 rasters = arcpy.ListRasters("lacaFT*", "TIF")
-midFT = outName + "_baseFantailHabitat.tif"
+midFTras = outName + "_baseFantailHabitat.tif"
 outputHFT = outName + "_FantailHabitat.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, midFT, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-ELHFT = asymFT / (1 + Exp((midFT - Raster(midFT))/kFT))
+arcpy.MosaicToNewRaster_management(rasters, ws, midFTras, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+ELHFT = asymFT / (1 + Exp((midFT - Raster(midFTras))/kFT))
 ELHFT.save(outputHFT)
 
 # Create Control rasters
@@ -222,10 +222,11 @@ arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputN), outName +
 # arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_Ncontrol.tif"), outName + "_MSNControl.dbf", "DATA", "SUM")
 
 # Calculate Cooling and Bellbird  control metascore DBFs
-if arcpy.Exists(outputC):
+if arcpy.Exists(outputHBB):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputHBB), outName + "_MSBBHabitat.dbf", "DATA", "SUM")
     # arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_BBcontrol.tif"), outName + "_MSBBControl.dbf",
                                         # "DATA", "SUM")
+if arcpy.Exists(outputC):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
     # arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outName + "_CoolControl.tif"), outName + "_MSCControl.dbf", "DATA",
                                     # "SUM")
