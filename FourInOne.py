@@ -1,7 +1,7 @@
 # Calculate ecosystem services layers and metascores for individual ES rasters
 # Combines Cooling.py, Nitrogen.py, Laca.py and metascores.py into one script
 # Developed for Richard Morris
-# C. Doscher October 2022 - Updated 19 April 2023
+# C. Doscher October 2022 - Updated 20 April 2023
 
 import arcpy
 
@@ -115,7 +115,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
                 coolOut.save("cool_" + str(fid) + ".tif")
 
                 # dcalcBB = 500.00
-        if row[2] >= 20000:
+        if row[2] >= 19000:
                 lacaBBOut = Con(distIn <= dcalcBB,
                                 ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(distIn) ** 2) ** 3), 0)
                 lacaBBOut.save("lacaBB_" + str(fid) + ".tif")
@@ -136,15 +136,16 @@ del cursor
 
 # Calculate final layer for each ES
 # Cooling
-rasterList = arcpy.ListRasters("cool*", "TIF")
+rasterC = arcpy.ListRasters("cool*", "TIF")
 outputC = outName + "_cool.tif"
 proj = arcpy.SpatialReference(2193)
-if len(rasterList) > 0:
+if len(rasterC) > 0:
         # outputC = outName + "_cool.tif"
         # proj = arcpy.SpatialReference(2193)
-        arcpy.MosaicToNewRaster_management(rasterList, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+        arcpy.MosaicToNewRaster_management(rasterC, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
         inConstant = 0.75
         outTimes = Times(Raster("midcool.tif"), inConstant)
+        # outTimes = Times(Raster("midcool.tif"), inConstant)
         outTimes.save(outName + "_baseCooling.tif")
         # coolOverlap = 30 / (1 + Exp(4.365 - Raster("timescool.tif"))
         # user inputs values for ASYM, MID and k
@@ -152,34 +153,34 @@ if len(rasterList) > 0:
         coolOverlap.save(outputC)
 
 # Nitrogen MS raster
-rasters = arcpy.ListRasters("N_*", "TIF")
+rastersN = arcpy.ListRasters("N_*", "TIF")
 midNit = outName + "_baseNitrogen.tif"
 outputN = outName + "_nitrogen.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, midNit, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+arcpy.MosaicToNewRaster_management(rastersN, ws, midNit, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 # Use EL model for nonlinear effects - parameters set by user
 ELNitrogen = asymN / (1 + Exp((midN - Raster(midNit))/kN))
 ELNitrogen.save(outputN)
 
 
 # Bellbird Habitat MS raster
-rasters = arcpy.ListRasters("lacaBB*", "TIF")
+rastersBB = arcpy.ListRasters("lacaBB*", "TIF")
 midHBBras = outName + "_baseBellbirdHabitat.tif"
 outputHBB = outName + "_BellbirdHabitat.tif"
 proj = arcpy.SpatialReference(2193)
-if len(rasters) > 0:
-    arcpy.MosaicToNewRaster_management(rasters, ws, midHBBras, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+if len(rastersBB) > 0:
+    arcpy.MosaicToNewRaster_management(rastersBB, ws, midHBBras, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
     # Use EL Model for nonlinear effects - user supplies parameters
     ELHBB = asymBB / (1 + Exp((midBB - Raster(midHBBras))/kBB))
     ELHBB.save(outputHBB)
 
 
-# Fantail  Habitat MS raster
-rasters = arcpy.ListRasters("lacaFT*", "TIF")
+# Fantail Habitat MS raster
+rastersFT = arcpy.ListRasters("lacaFT*", "TIF")
 midFTras = outName + "_baseFantailHabitat.tif"
 outputHFT = outName + "_FantailHabitat.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rasters, ws, midFTras, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+arcpy.MosaicToNewRaster_management(rastersFT, ws, midFTras, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 ELHFT = asymFT / (1 + Exp((midFT - Raster(midFTras))/kFT))
 ELHFT.save(outputHFT)
 
