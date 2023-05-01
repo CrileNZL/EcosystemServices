@@ -1,7 +1,7 @@
 # Calculate ecosystem services layers and metascores for individual ES rasters
 # Combines Cooling.py, Nitrogen.py, Laca.py and metascores.py into one script
 # Developed for Richard Morris
-# C. Doscher October 2022 - Updated 20 April 2023
+# C. Doscher October 2022 - Updated 28 April 2023
 
 import arcpy
 
@@ -134,7 +134,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 del row
 del cursor
 
-# Calculate final layer for each ES
+# Calculate base and metascores layers for each ES
 # Cooling
 rasterC = arcpy.ListRasters("cool*", "TIF")
 outputC = outName + "_cool.tif"
@@ -143,35 +143,45 @@ if len(rasterC) > 0:
         # outputC = outName + "_cool.tif"
         # proj = arcpy.SpatialReference(2193)
         arcpy.MosaicToNewRaster_management(rasterC, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-        inConstant = 0.75
-        outTimes = Times(Raster("midcool.tif"), inConstant)
+        # multiply output by 0.75 and then 100/19,017,262.73 to standardise 0 - 100
+        stdCoolValue = 0.00000394378
+        # inConstant = 0.75
+        outTimes = Times(Raster("midcool.tif"), stdCoolValue)
         # outTimes = Times(Raster("midcool.tif"), inConstant)
         outTimes.save(outName + "_baseCooling.tif")
         # coolOverlap = 30 / (1 + Exp(4.365 - Raster("timescool.tif"))
-        # user inputs values for ASYM, MID and k
+        # user inputs values for ASYM, MID and k and normalise by 19017262.73 (Value from RM)
         coolOverlap = asymC / (1 + Exp((midC - Raster(outTimes))/kC))
         coolOverlap.save(outputC)
 
 # Nitrogen MS raster
 rastersN = arcpy.ListRasters("N_*", "TIF")
-midNit = outName + "_baseNitrogen.tif"
+stdNit = outName + "_baseNitrogen.tif"
 outputN = outName + "_nitrogen.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rastersN, ws, midNit, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-# Use EL model for nonlinear effects - parameters set by user
-ELNitrogen = asymN / (1 + Exp((midN - Raster(midNit))/kN))
+arcpy.MosaicToNewRaster_management(rastersN, ws, "tempNit.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+# standardise base nitrogen by multiplying by 100/12,281,380.69
+nitStdValue = 0.00000814241
+stdNitras = Times(Raster("tempNit.tif"), nitStdValue)
+stdNitras.save(stdNit)
+# Use EL model for nonlinear effects - parameters set by user, normalise by 12,281,380.69 (value from RM)
+ELNitrogen = asymN / (1 + Exp((midN - Raster(stdNit))/kN))
 ELNitrogen.save(outputN)
 
 
 # Bellbird Habitat MS raster
 rastersBB = arcpy.ListRasters("lacaBB*", "TIF")
-midHBBras = outName + "_baseBellbirdHabitat.tif"
+stdHBBras = outName + "_baseBellbirdHabitat.tif"
 outputHBB = outName + "_BellbirdHabitat.tif"
 proj = arcpy.SpatialReference(2193)
 if len(rastersBB) > 0:
-    arcpy.MosaicToNewRaster_management(rastersBB, ws, midHBBras, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-    # Use EL Model for nonlinear effects - user supplies parameters
-    ELHBB = asymBB / (1 + Exp((midBB - Raster(midHBBras))/kBB))
+    arcpy.MosaicToNewRaster_management(rastersBB, ws, "tempBB.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+    # standardise base Bellbird by multiplying by 100/15,528,423.90
+    bbStdValue = 0.0000064398
+    stdBB = Times(Raster("tempBB.tif"), bbStdValue)
+    stdBB.save(stdHBBras)
+    # Use EL Model for nonlinear effects - user supplies parameters, normalise by 15,528,423.90 (value from RM)
+    ELHBB = asymBB / (1 + Exp((midBB - Raster(stdHBBras))/kBB))
     ELHBB.save(outputHBB)
 
 
@@ -180,7 +190,12 @@ rastersFT = arcpy.ListRasters("lacaFT*", "TIF")
 midFTras = outName + "_baseFantailHabitat.tif"
 outputHFT = outName + "_FantailHabitat.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rastersFT, ws, midFTras, proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+arcpy.MosaicToNewRaster_management(rastersFT, ws, "tempFT.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+# standardise FT by multiplying by 100/14,336,377.64
+stdFTValue = 0.00000697526
+stdFT = Times(Raster("tempFT.tif"), stdFTValue)
+stdFT.save(midFTras)
+# Use EL model for nonlinear effects - user supplies parameters, normalise by 14,336,377.64 (value from RM)
 ELHFT = asymFT / (1 + Exp((midFT - Raster(midFTras))/kFT))
 ELHFT.save(outputHFT)
 
