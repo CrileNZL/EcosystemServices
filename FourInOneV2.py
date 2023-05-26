@@ -3,6 +3,7 @@
 # Developed for Richard Morris
 # C. Doscher October 2022 - Updated 19 May 2023
 # New version of 24 April script
+# N calculation updated on 26 May 2023
 
 import arcpy
 
@@ -127,7 +128,9 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
                 lacaBBOut.save("lacaBB_" + str(fid) + ".tif")
 
 # Nitrogen here
-        nOut = Con(distIn <= 7, (-3.9 * distIn ** 3 + 89.1 * distIn ** 2 - (814.5 * distIn) + 2968), 0)
+        # nOut = Con(distIn <= 7, (-3.9 * distIn ** 3 + 89.1 * distIn ** 2 - (814.5 * distIn) + 2968), 0)
+        # Updated by RM 26 May 23
+        nOut = Con(distIn <= 7, (-235 * distIn + 2065), 0)
         nOut.save("N_" + str(fid) + ".tif")
 
 
