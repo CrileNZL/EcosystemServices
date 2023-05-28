@@ -148,12 +148,12 @@ listFT.clear()
 listBB.clear()
 
 # delete all except final masks
-# for ras in arcpy.ListRasters("*", "TIF"):
-#         if not ras.startswith("mask"):
-#                 arcpy.Delete_management(ras)
-#
-# for shp in arcpy.ListFeatureClasses():
-#     arcpy.Delete_management(shp)
+for ras in arcpy.ListRasters("*", "TIF"):
+        if not ras.startswith("mask"):
+                arcpy.Delete_management(ras)
+
+for shp in arcpy.ListFeatureClasses():
+    arcpy.Delete_management(shp)
 
 # Run NEAR on inputFC for FT habitat calc
 arcpy.Near_analysis(inputFC, inputFC)
@@ -313,9 +313,9 @@ if (arcpy.Exists(outputHFT)):
 
 # Clean up
 # Delete distance and individual ES grids
-# for ras in arcpy.ListRasters("*", "TIF"):
-        # if not ras.startswith(outName):
-                # arcpy.Delete_management(ras)
+for ras in arcpy.ListRasters("*", "TIF"):
+        if not ras.startswith(outName):
+                arcpy.Delete_management(ras)
 
 
 arcpy.CheckInExtension("Spatial")
