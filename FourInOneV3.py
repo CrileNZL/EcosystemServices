@@ -58,12 +58,6 @@ dcalcFT = 100.0
 
 arcpy.CheckOutExtension("Spatial")
 
-# Create mask to set SPU area to 0 for Zonal Statistics as Table
-arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "Mask.tif", "CELL_CENTER", "", 5)
-# use Con to change NoData values to 0 and existing values to NoData
-nCon = Con(IsNull("Mask.tif"), 1, 0)
-nCon.save("SPUMask.tif")
-
 # Create masks to limit area of application for nonlinear equation
 
 listN = []
@@ -154,6 +148,12 @@ for ras in arcpy.ListRasters("*", "TIF"):
 
 for shp in arcpy.ListFeatureClasses():
     arcpy.Delete_management(shp)
+
+# Create mask to set SPU area to 0 for Zonal Statistics as Table
+arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "Mask.tif", "CELL_CENTER", "", 5)
+# use Con to change NoData values to 0 and existing values to NoData
+nCon = Con(IsNull("Mask.tif"), 1, 0)
+nCon.save("SPUMask.tif")
 
 # Run NEAR on inputFC for FT habitat calc
 arcpy.Near_analysis(inputFC, inputFC)
