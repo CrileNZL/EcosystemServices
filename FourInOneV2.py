@@ -75,6 +75,7 @@ dcalcFT = 100.0
 
 arcpy.CheckOutExtension("Spatial")
 
+# Create mask to set SPU area to 0 for Zonal Statistics as Table
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "Mask.tif", "CELL_CENTER", "", 5)
 # use Con to change NoData values to 0 and existing values to NoData
 nCon = Con(IsNull("Mask.tif"), 1, 0)

@@ -22,9 +22,9 @@ arcpy.env.extent = boundary
 # get cellsize from user
 cellSize = arcpy.GetParameterAsText(3)
 
-Ndist = 7.0
-dcalcBB = 500.0
-dcalcFT = 100.0
+# Ndist = 7.0
+# dcalcBB = 500.0
+# dcalcFT = 100.0
 
 arcpy.CheckOutExtension("Spatial")
 
