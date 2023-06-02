@@ -4,6 +4,7 @@
 # C. Doscher October 2022 - Updated 19 May 2023
 # New version of 24 April script
 # N calculation updated on 26 May 2023
+# new BB and error catching for FT on 2 June 2023
 # Added code to create masks for final analysis
 
 import arcpy
@@ -197,7 +198,7 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
                 coolOut.save("cool_" + str(fid) + ".tif")
 
                 # dcalcBB = 500.00
-        if row[2] >= 19000:
+        if row[2] >= 15000 or (row[2] > 950 and row[5] < 10.0):
                 lacaBBOut = Con(distIn <= dcalcBB,
                                 ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(distIn) ** 2) ** 3), 0)
                 lacaBBOut.save("lacaBB_" + str(fid) + ".tif")
@@ -279,16 +280,17 @@ rastersFT = arcpy.ListRasters("lacaFT*", "TIF")
 midFTras = outName + "_baseFantailHabitat.tif"
 outputHFT = outName + "_FantailHabitat.tif"
 proj = arcpy.SpatialReference(2193)
-arcpy.MosaicToNewRaster_management(rastersFT, ws, "tempFT.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-# standardise FT by multiplying by 100/0.24
-stdFTValue = 416.7
-stdFT = Times(Raster("tempFT.tif"), stdFTValue)
-stdFT.save(midFTras)
+if len(rastersFT) > 0:
+    arcpy.MosaicToNewRaster_management(rastersFT, ws, "tempFT.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+    # standardise FT by multiplying by 100/0.24
+    stdFTValue = 416.7
+    stdFT = Times(Raster("tempFT.tif"), stdFTValue)
+    stdFT.save(midFTras)
 
-ELHFT = Con(Raster("maskFTnonlin.tif") == 1, (asymFT / (1 + Exp((midFT - Raster(stdFT))/kFT))), Raster(stdFT))
-ELHFT.save("nonlinFT.tif")
-finalFT = Times(Raster("nonlinFT.tif"), Raster("SPUMask.tif"))
-finalFT.save(outputHFT)
+    ELHFT = Con(Raster("maskFTnonlin.tif") == 1, (asymFT / (1 + Exp((midFT - Raster(stdFT))/kFT))), Raster(stdFT))
+    ELHFT.save("nonlinFT.tif")
+    finalFT = Times(Raster("nonlinFT.tif"), Raster("SPUMask.tif"))
+    finalFT.save(outputHFT)
 
 # use Zonal Statistics as Table to calculate ES metascore
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
