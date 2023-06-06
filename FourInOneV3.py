@@ -6,6 +6,7 @@
 # N calculation updated on 26 May 2023
 # new BB and error catching for FT on 2 June 2023
 # Added code to create masks for final analysis
+# Updated 4 June - added error catching code for nonlinear mask creation - if max value = 0
 
 import arcpy
 
@@ -66,7 +67,7 @@ listFT = []
 listBB = []
 
 # Create buffers and raster grids for use in ES code
-with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', 'd', 'NEAR_DIST']) as cursor:
+with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@']) as cursor:
     for row in cursor:
         fid = row[0]
         arcpy.env.workspace = ws
@@ -106,12 +107,16 @@ addN = CellStatistics(listN, "SUM", "NODATA")
 addNras = Raster(addN)
 maxAddN = int(addNras.maximum)
 addN.save("addN.tif")
+
 # output mask for N
-maskN = Reclassify(Raster("addN.tif"), "VALUE", RemapRange([[0, 0, 0], [0, maxAddN, 1]]))
-maskN.save("maskN.tif")
-# output nonlinear mask for N
-nonlinmaskN = Reclassify(Raster("addN.tif"), "VALUE", RemapRange([[0, 1, 0], [1, maxAddN, 1]]))
-nonlinmaskN.save("maskNnonlin.tif")
+if maxAddN <= 0:
+    pass
+else:
+    maskN = Reclassify(Raster("addN.tif"), "VALUE", RemapRange([[0, 0, 0], [0, maxAddN, 1]]))
+    maskN.save("maskN.tif")
+    # output nonlinear mask for N
+    nonlinmaskN = Reclassify(Raster("addN.tif"), "VALUE", RemapRange([[0, 1, 0], [1, maxAddN, 1]]))
+    nonlinmaskN.save("maskNnonlin.tif")
 
 # Add up FT grids and create masks
 addFT = CellStatistics(listFT, "SUM", "NODATA")
@@ -119,11 +124,14 @@ addFTras = Raster(addFT)
 maxAddFT = int(addFTras.maximum)
 addFT.save("addFT.tif")
 # output mask for FT
-maskFT = Reclassify(Raster("addFT.tif"), "VALUE", RemapRange([[0, 0, 0], [0, maxAddFT, 1]]))
-maskFT.save("maskFT.tif")
-# output nonlinear mask for N
-nonlinmaskFT = Reclassify(Raster("addFT.tif"), "VALUE", RemapRange([[0, 1, 0], [1, maxAddFT, 1]]))
-nonlinmaskFT.save("maskFTnonlin.tif")
+if maxAddFT <= 0:
+    pass
+else:
+    maskFT = Reclassify(Raster("addFT.tif"), "VALUE", RemapRange([[0, 0, 0], [0, maxAddFT, 1]]))
+    maskFT.save("maskFT.tif")
+    # output nonlinear mask for N
+    nonlinmaskFT = Reclassify(Raster("addFT.tif"), "VALUE", RemapRange([[0, 1, 0], [1, maxAddFT, 1]]))
+    nonlinmaskFT.save("maskFTnonlin.tif")
 
 # Add up BB grids and create masks
 addBB = CellStatistics(listBB, "SUM", "NODATA")
@@ -131,11 +139,14 @@ addBBras = Raster(addFT)
 maxAddBB = int(addBBras.maximum)
 addBB.save("addBB.tif")
 # output mask for BB
-maskBB = Reclassify(Raster("addBB.tif"), "VALUE", RemapRange([[0, 0, 0], [0, maxAddBB, 1]]))
-maskBB.save("maskBB.tif")
-# output nonlinear mask for BB
-nonlinmaskBB = Reclassify(Raster("addBB.tif"), "VALUE", RemapRange([[0, 1, 0], [1, maxAddBB, 1]]))
-nonlinmaskBB.save("maskBBnonlin.tif")
+if maxAddBB <= 0:
+    pass
+else:
+    maskBB = Reclassify(Raster("addBB.tif"), "VALUE", RemapRange([[0, 0, 0], [0, maxAddBB, 1]]))
+    maskBB.save("maskBB.tif")
+    # output nonlinear mask for BB
+    nonlinmaskBB = Reclassify(Raster("addBB.tif"), "VALUE", RemapRange([[0, 1, 0], [1, maxAddBB, 1]]))
+    nonlinmaskBB.save("maskBBnonlin.tif")
 
 # clear lists for next iteration
 listN.clear()
@@ -211,10 +222,10 @@ with arcpy.da.SearchCursor(inputFC, ['OBJECTID', 'Shape@', 'Shape_Area', 'CC', '
 
 
 # Fantail Habitat here - include SPUs greater than 1.5 ha and within 150 m of another SPU of any size
-        if row[2] >= 15000 or (row[2] < 15000 and row[5] < 150.0):
-                # dcalcFT = 50.0
-                lacaFTOut = Con(distIn <= dcalcFT, ((1/dcalcFT)*1.094*(1 - (1/dcalcFT)**2*Raster(distIn)**2)**3), 0)
-                lacaFTOut.save("lacaFT_" + str(fid) + ".tif")
+        # if row[2] >= 15000 or (row[2] < 15000 and row[5] < 150.0):
+        # dcalcFT = 50.0
+        lacaFTOut = Con(distIn <= dcalcFT, ((1/dcalcFT)*1.094*(1 - (1/dcalcFT)**2*Raster(distIn)**2)**3), 0)
+        lacaFTOut.save("lacaFT_" + str(fid) + ".tif")
 
 del row
 del cursor
@@ -252,10 +263,13 @@ nitStdValue = 0.01315
 stdNitras = Times(Raster("tempNit.tif"), nitStdValue)
 stdNitras.save(stdNit)
 # Use EL model for nonlinear effects - parameters set by user
-ELNitrogen = Con(Raster("maskNnonlin.tif") == 1, (asymN / (1 + Exp((midN - Raster(stdNit))/kN))), Raster(stdNit))
-ELNitrogen.save("nonlinNit.tif")
-finalN = Times(Raster("nonlinNit.tif"), Raster("SPUMask.tif"))
-finalN.save(outputN)
+if arcpy.Exists("maskNnonlin.tif"):
+    ELNitrogen = Con(Raster("maskNnonlin.tif") == 1, (asymN / (1 + Exp((midN - Raster(stdNit))/kN))), Raster(stdNit))
+    ELNitrogen.save(outputN)
+    # finalN = Times(Raster("nonlinNit.tif"), Raster("SPUMask.tif"))
+    # finalN.save(outputN)
+else:
+    stdNitras.save(outputN)
 
 # Bellbird Habitat MS raster
 rastersBB = arcpy.ListRasters("lacaBB*", "TIF")
@@ -269,10 +283,13 @@ if len(rastersBB) > 0:
     stdBB = Times(Raster("tempBB.tif"), bbStdValue)
     stdBB.save(stdHBBras)
     # Use EL Model for nonlinear effects - user supplies parameters
-    ELHBB = Con(Raster("maskBBnonlin.tif") == 1, (asymBB / (1 + Exp((midBB - Raster(stdBB))/kBB))), Raster(stdBB))
-    ELHBB.save("nonlinBB.tif")
-    finalBB = Times(Raster("nonlinBB.tif"), Raster("SPUMask.tif"))
-    finalBB.save(outputHBB)
+    if arcpy.Exists("maskBBnonlin.tif"):
+        ELHBB = Con(Raster("maskBBnonlin.tif") == 1, (asymBB / (1 + Exp((midBB - Raster(stdBB))/kBB))), Raster(stdBB))
+        ELHBB.save("nonlinBB.tif")
+        finalBB = Times(Raster("nonlinBB.tif"), Raster("SPUMask.tif"))
+        finalBB.save(outputHBB)
+    else:
+        stdBB.save(outputHBB)
 
 
 # Fantail Habitat MS raster
@@ -287,10 +304,13 @@ if len(rastersFT) > 0:
     stdFT = Times(Raster("tempFT.tif"), stdFTValue)
     stdFT.save(midFTras)
 
-    ELHFT = Con(Raster("maskFTnonlin.tif") == 1, (asymFT / (1 + Exp((midFT - Raster(stdFT))/kFT))), Raster(stdFT))
-    ELHFT.save("nonlinFT.tif")
-    finalFT = Times(Raster("nonlinFT.tif"), Raster("SPUMask.tif"))
-    finalFT.save(outputHFT)
+    if arcpy.Exists("maskFTnonlin.tif"):
+        ELHFT = Con(Raster("maskFTnonlin.tif") == 1, (asymFT / (1 + Exp((midFT - Raster(stdFT))/kFT))), Raster(stdFT))
+        ELHFT.save("nonlinFT.tif")
+        finalFT = Times(Raster("nonlinFT.tif"), Raster("SPUMask.tif"))
+        finalFT.save(outputHFT)
+    else:
+        stdFT.save(outputHFT)
 
 # use Zonal Statistics as Table to calculate ES metascore
 arcpy.sa.ZonalStatisticsAsTable(boundary, "OBJECTID", Raster(outputN), outName + "_MSNitrogen.dbf", "DATA", "SUM")
