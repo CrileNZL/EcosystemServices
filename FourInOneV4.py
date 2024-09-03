@@ -231,11 +231,13 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
             arcpy.PolygonToLine_management(row[1], outLine, "")
             # autogenerate points
             bdyp = "BDYPoints_" + str(fid) + ".shp"
-            minDistC = (max([cur[0] for cur in arcpy.da.SearchCursor(bdyp, "NEAR_DIST")])/dcool)
-            print("minDistC = " + minDistC)
             arcpy.GeneratePointsAlongLines_management(outLine, bdyp, 'DISTANCE', Distance="20 meters")
             # Near bondary points to centerline
             arcpy.Near_analysis(bdyp, cline)
+            minDistC = (max([cur[0] for cur in arcpy.da.SearchCursor(bdyp, "NEAR_DIST")]) / dcool)
+            print("minDistC = " + minDistC)
+
+            # Loop through BDYPoints and do cooling calcs
             with arcpy.da.SearchCursor(bdyp, ['FID', 'SHAPE@', 'NEAR_DIST']) as cursorp:
                 for rowp in cursorp:
                     pfid = rowp[0]
