@@ -8,6 +8,7 @@
 # Added code to create masks for final analysis
 # Updated 4 June - added error catching code for nonlinear mask creation - if max value = 0
 # Updated July 2024 - new code to handle irregular polygons and cooling
+# Updating Septemeber 2024 - new code to set minimum cooling distance internally
 
 import arcpy
 
@@ -235,7 +236,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
             # Near bondary points to centerline
             arcpy.Near_analysis(bdyp, cline)
             minDistC = (max([cur[0] for cur in arcpy.da.SearchCursor(bdyp, "NEAR_DIST")]) / dcool)
-            print("minDistC = " + minDistC)
+            print("minDistC = " + str(minDistC))
 
             # Loop through BDYPoints and do cooling calcs
             with arcpy.da.SearchCursor(bdyp, ['FID', 'SHAPE@', 'NEAR_DIST']) as cursorp:
