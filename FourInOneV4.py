@@ -234,9 +234,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
             bdyp = "BDYPoints_" + str(fid) + ".shp"
             arcpy.GeneratePointsAlongLines_management(outLine, bdyp, 'DISTANCE', Distance="20 meters")
             # Near boundary points to centerline
-            if arcpy.GetCount_management(bdyp) == 0:
-                pass
-            else:
+            if int(arcpy.GetCount_management(bdyp)["row_count"]) > 0:
                 arcpy.Near_analysis(bdyp, cline)
                 minDistC = (max([cur[0] for cur in arcpy.da.SearchCursor(bdyp, "NEAR_DIST")]) / dcool)
                 arcpy.AddMessage("minDistC = " + str(minDistC))
