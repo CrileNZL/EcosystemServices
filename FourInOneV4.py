@@ -8,7 +8,7 @@
 # Added code to create masks for final analysis
 # Updated 4 June - added error catching code for nonlinear mask creation - if max value = 0
 # Updated July 2024 - new code to handle irregular polygons and cooling
-# Updating Septemeber 2024 - new code to set minimum cooling distance internally
+# Updating September 2024 - new code to set minimum cooling distance internally
 
 import arcpy
 
@@ -173,8 +173,8 @@ listBB.clear()
 
 # delete all except final masks
 for ras in arcpy.ListRasters("*", ""):
-        if not ras.startswith("mask"):
-                arcpy.Delete_management(ras)
+    if not ras.startswith("mask"):
+        arcpy.Delete_management(ras)
 # Delete buffer shapefiles
 for shp in arcpy.ListFeatureClasses():
     if shp.startswith("buf"):
@@ -210,7 +210,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
 
         # Calculate individual ESs
         # Cooling and Bellbird habitat here
-        # select all SPUs great than 4900 m2 in area and those smaller that are within 2*R of another SPU
+        # select all SPUs greater than 4900 m2 in area and those smaller that are within 2*R of another SPU
         # new Cooling code here
         # For each SPU, create centerline and points around boundary
         # For each point, calculate distance to centerline
@@ -233,33 +233,36 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
             # autogenerate points
             bdyp = "BDYPoints_" + str(fid) + ".shp"
             arcpy.GeneratePointsAlongLines_management(outLine, bdyp, 'DISTANCE', Distance="20 meters")
-            # Near bondary points to centerline
-            arcpy.Near_analysis(bdyp, cline)
-            minDistC = (max([cur[0] for cur in arcpy.da.SearchCursor(bdyp, "NEAR_DIST")]) / dcool)
-            print("minDistC = " + str(minDistC))
+            # Near boundary points to centerline
+            if arcpy.GetCount_management(bdyp) == 0:
+                pass
+            else:
+                arcpy.Near_analysis(bdyp, cline)
+                minDistC = (max([cur[0] for cur in arcpy.da.SearchCursor(bdyp, "NEAR_DIST")]) / dcool)
+                arcpy.AddMessage("minDistC = " + str(minDistC))
 
-            # Loop through BDYPoints and do cooling calcs
-            with arcpy.da.SearchCursor(bdyp, ['FID', 'SHAPE@', 'NEAR_DIST']) as cursorp:
-                for rowp in cursorp:
-                    pfid = rowp[0]
-                    if rowp[2] <= minDistC:
-                        d = minDistC
-                    else:
-                        d = rowp[2]
-                    ## d = row[2]
-                    distOutC = "cooldist_" + str(fid) + "_" + str(pfid) + ".tif"
-                    dist = arcpy.sa.EucDistance(rowp[1], d, cellSize)
-                    dist.save(distOutC)
+                # Loop through BDYPoints and do cooling calcs
+                with arcpy.da.SearchCursor(bdyp, ['FID', 'SHAPE@', 'NEAR_DIST']) as cursorp:
+                    for rowp in cursorp:
+                        pfid = rowp[0]
+                        if rowp[2] <= minDistC:
+                            d = minDistC
+                        else:
+                            d = rowp[2]
+                        # d = row[2]
+                        distOutC = "cooldist_" + str(fid) + "_" + str(pfid) + ".tif"
+                        dist = arcpy.sa.EucDistance(rowp[1], d, cellSize)
+                        dist.save(distOutC)
 
-                    # calculate cooling effect
-                    # arcpy.env.workspace = ws
-                    distInC = Raster(distOutC)
-                    ha = float(row[2])/10000
+                        # calculate cooling effect
+                        # arcpy.env.workspace = ws
+                        distInC = Raster(distOutC)
+                        ha = float(row[2])/10000
 
-                    # coolOut = (cc/(ha * Exp(Raster(distIn)/d)))
-                    coolOut = ha * cc * Exp(-5 * (distInC / d))
-                    # coolOut = ha * cc * Exp((-1 * distIn) / d)
-                    coolOut.save("coolcalc_" + str(fid) + "_" + str(pfid) + ".tif")
+                        # coolOut = (cc/(ha * Exp(Raster(distIn)/d)))
+                        coolOut = ha * cc * Exp(-5 * (distInC / d))
+                        # coolOut = ha * cc * Exp((-1 * distIn) / d)
+                        coolOut.save("coolcalc_" + str(fid) + "_" + str(pfid) + ".tif")
 
             # del rowp
             del cursorp
@@ -276,11 +279,11 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
             # coolOut = ha * cc * Exp(Raster(-1 * distIn)/d)
             # coolOut.save("cool_" + str(fid) + ".tif")
 
-                # dcalcBB = 500.00
+            # dcalcBB = 500.00
         if row[2] >= 15000 or (row[2] > 950 and row[5] < 10.0):
-                lacaBBOut = Con(distIn <= dcalcBB,
-                                ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(distIn) ** 2) ** 3), 0)
-                lacaBBOut.save("lacaBB_" + str(fid) + ".tif")
+            lacaBBOut = Con(distIn <= dcalcBB,
+                            ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(distIn) ** 2) ** 3), 0)
+            lacaBBOut.save("lacaBB_" + str(fid) + ".tif")
 
         arcpy.AddMessage("Bellbird calcs done")
 
@@ -306,23 +309,23 @@ rasterC = arcpy.ListRasters("coolcalc*", "")
 outputC = outName + "_cool" + ".tif"
 proj = arcpy.SpatialReference(2193)
 if len(rasterC) > 0:
-        # outputC = outName + "_cool.tif"
-        # proj = arcpy.SpatialReference(2193)
-        arcpy.MosaicToNewRaster_management(rasterC, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-        # multiply output by 0.75 and then 100/122 to standardise 0 - 100
-        stdCoolValue = 0.6148
-        # inConstant = 0.75
-        outTimes = Times(Raster("midcool.tif"), stdCoolValue)
-        # outTimes = Times(Raster("midcool.tif"), inConstant)
-        outTimes.save(outName + "_baseCooling.tif")
-        # coolOverlap = 30 / (1 + Exp(4.365 - Raster("timescool.tif"))
-        # user inputs values for ASYM, MID and k
-        coolOverlap = asymC / (1 + Exp((midC - Raster(outTimes))/kC))
-        coolOverlap.save("nonlinCool.tif")
-        finalCool = Times(Raster("nonlinCool.tif"), Raster("SPUMask.tif"))
-        finalCool.save(outputC)
+    # outputC = outName + "_cool.tif"
+    # proj = arcpy.SpatialReference(2193)
+    arcpy.MosaicToNewRaster_management(rasterC, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
+    # multiply output by 0.75 and then 100/122 to standardise 0 - 100
+    stdCoolValue = 0.6148
+    # inConstant = 0.75
+    outTimes = Times(Raster("midcool.tif"), stdCoolValue)
+    # outTimes = Times(Raster("midcool.tif"), inConstant)
+    outTimes.save(outName + "_baseCooling.tif")
+    # coolOverlap = 30 / (1 + Exp(4.365 - Raster("timescool.tif"))
+    # user inputs values for ASYM, MID and k
+    coolOverlap = asymC / (1 + Exp((midC - Raster(outTimes))/kC))
+    coolOverlap.save("nonlinCool.tif")
+    finalCool = Times(Raster("nonlinCool.tif"), Raster("SPUMask.tif"))
+    finalCool.save(outputC)
 
-        arcpy.AddMessage("Final Cooling layer done.")
+    arcpy.AddMessage("Final Cooling layer done.")
 
 # Nitrogen MS raster
 rastersN = arcpy.ListRasters("N_*", "")
@@ -396,25 +399,23 @@ arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputN), outName + "_MS
 # Calculate Cooling and Bellbird  control metascore DBFs
 if arcpy.Exists(outputHBB):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputHBB), outName + "_MSBBHabitat.dbf", "DATA", "SUM")
-    # arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outName + "_BBcontrol.tif"), outName + "_MSBBControl.dbf",
-                                        # "DATA", "SUM")
+    # arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outName + "_BBcontrol.tif"), outName + "_MSBBControl.dbf", "DATA", "SUM")
 if arcpy.Exists(outputC):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputC), outName + "_MSCool.dbf", "DATA", "SUM")
-    # arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outName + "_CoolControl.tif"), outName + "_MSCControl.dbf", "DATA",
-                                    # "SUM")
+    # arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outName + "_CoolControl.tif"), outName + "_MSCControl.dbf", "DATA", "SUM")
 
 # Calculate control metascores.  Skip C if it doesn't exist
 # need a custom mask for each ES - Nitrogen can use the already existing mask from above
 # arcpy.env.mask = hFTCM
-if (arcpy.Exists(outputHFT)):
+if arcpy.Exists(outputHFT):
     arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outputHFT), outName + "_MSFTHabitat.dbf", "DATA", "SUM")
     # arcpy.sa.ZonalStatisticsAsTable(boundary, "FID", Raster(outName + "_FTcontrol.tif"), outName + "_MSFTControl.dbf", "DATA", "SUM")
 
 # Clean up
 # Delete distance and individual ES grids
 # for ras in arcpy.ListRasters("*", ""):
-        # if not ras.startswith(outName):
-                # arcpy.Delete_management(ras)
+    # if not ras.startswith(outName):
+    # arcpy.Delete_management(ras)
 
 arcpy.AddMessage("Script complete.")
 
