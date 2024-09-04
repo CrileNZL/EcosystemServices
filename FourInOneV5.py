@@ -32,44 +32,44 @@ ws = arcpy.GetParameterAsText(2)
 arcpy.env.workspace = ws
 
 
-# EL model parameters for cooling
-asymC = float(arcpy.GetParameterAsText(3))
-midC = float(arcpy.GetParameterAsText(4))
-kC = float(arcpy.GetParameterAsText(5))
-dcool = float(arcpy.GetParameterAsText(6))
-
-# EL model parameters for nitrogen
-asymN = float(arcpy.GetParameterAsText(7))
-midN = float(arcpy.GetParameterAsText(8))
-kN = float(arcpy.GetParameterAsText(9))
-dnit = float(arcpy.GetParameterAsText(10))
-
-# EL model parametersf for Bellbirds
-asymBB = float(arcpy.GetParameterAsText(11))
-midBB = float(arcpy.GetParameterAsText(12))
-kBB = float(arcpy.GetParameterAsText(13))
-dbell = float(arcpy.GetParameterAsText(14))
-
-# EL parameters for Fantails
-asymFT = float(arcpy.GetParameterAsText(15))
-midFT = float(arcpy.GetParameterAsText(16))
-kFT = float(arcpy.GetParameterAsText(17))
-dfan = float(arcpy.GetParameterAsText(18))
+# # EL model parameters for cooling
+# asymC = float(arcpy.GetParameterAsText(3))
+# midC = float(arcpy.GetParameterAsText(4))
+# kC = float(arcpy.GetParameterAsText(5))
+dcool = float(arcpy.GetParameterAsText(3))
+#
+# # EL model parameters for nitrogen
+# asymN = float(arcpy.GetParameterAsText(7))
+# midN = float(arcpy.GetParameterAsText(8))
+# kN = float(arcpy.GetParameterAsText(9))
+dnit = float(arcpy.GetParameterAsText(4))
+#
+# # EL model parametersf for Bellbirds
+# asymBB = float(arcpy.GetParameterAsText(11))
+# midBB = float(arcpy.GetParameterAsText(12))
+# kBB = float(arcpy.GetParameterAsText(13))
+dbell = float(arcpy.GetParameterAsText(5))
+#
+# # EL parameters for Fantails
+# asymFT = float(arcpy.GetParameterAsText(15))
+# midFT = float(arcpy.GetParameterAsText(16))
+# kFT = float(arcpy.GetParameterAsText(17))
+dfan = float(arcpy.GetParameterAsText(6))
 
 # Get boundary zone FC from user
-boundary = arcpy.GetParameterAsText(19)
+boundary = arcpy.GetParameterAsText(7)
 arcpy.env.extent = boundary
 
 # Get cell size from user
 # get cellsize from user
-cellSize = arcpy.GetParameterAsText(20)
+cellSize = arcpy.GetParameterAsText(8)
 # cellSizeHa = (float(cellSize)**2)/10000.0
 
 # get output file name from user
-outName = arcpy.GetParameterAsText(21)
+outName = arcpy.GetParameterAsText(9)
 
-dcalcBB = 500.0
-dcalcFT = 100.0
+# dcalcBB = 500.0
+# dcalcFT = 100.0
 
 arcpy.CheckOutExtension("Spatial")
 
@@ -123,6 +123,10 @@ addNras = Raster(addN)
 maxAddN = int(addNras.maximum)
 addN.save("addN.tif")
 
+# create nonlinear adjustment layer for N
+nonlinNadj = 1 / (1 + Exp(-1 * "addN.tif" + Exp(2)))
+nonlinNadj.save("masknonlinNadj.tif")
+
 # output mask for N
 if maxAddN <= 0:
     pass
@@ -140,6 +144,11 @@ addFT = CellStatistics(listFT, "SUM", "NODATA")
 addFTras = Raster(addFT)
 maxAddFT = int(addFTras.maximum)
 addFT.save("addFT.tif")
+
+# create nonlinear adjustment layer for FT
+nonlinFTadj = 1 / (1 + Exp(-1 * "addFT.tif" + Exp(2)))
+nonlinFTadj.save("masknonlinFTadj.tif")
+
 # output mask for FT
 if maxAddFT <= 0:
     pass
@@ -157,6 +166,11 @@ addBB = CellStatistics(listBB, "SUM", "NODATA")
 addBBras = Raster(addFT)
 maxAddBB = int(addBBras.maximum)
 addBB.save("addBB.tif")
+
+# create nonlinear adjustment layer for BB
+nonlinBBadj = 1 / (1 + Exp(-1 * "addBB.tif" + Exp(2)))
+nonlinBBadj.save("masknonlinDDadj.tif")
+
 # output mask for BB
 if maxAddBB <= 0:
     pass
@@ -325,7 +339,7 @@ if len(rasterC) > 0:
     coolOverlap.save("nonlinCool.tif")
     finalCool = Times(Raster("nonlinCool.tif"), Raster("SPUMask.tif"))
     finalCool.save(outputC)
-
+    #
     arcpy.AddMessage("Final Cooling layer done.")
 
 # Nitrogen MS raster
@@ -334,19 +348,30 @@ stdNit = outName + "_baseNitrogen.tif"
 outputN = outName + "_nitrogen.tif"
 proj = arcpy.SpatialReference(2193)
 arcpy.MosaicToNewRaster_management(rastersN, ws, "tempNit.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-# standardise base nitrogen by multiplying by 100/7603
-nitStdValue = 0.01315
-stdNitras = Times(Raster("tempNit.tif"), nitStdValue)
-stdNitras.save(stdNit)
+
+# nonlinear adjustment of Nitrogen raw values
+nlN = "tempNit.tif" + ("tempNit.tif" * raster("masknonlinNadj.tif"))
+nlN.save("Nadjusted.tif")
+
+# Rescale N to 1 - 10 scale
+nlNrescale = ((9 * Raster("Nadjusted.tif")) / (Raster(nlN).maximum - Raster(nlN).minimum)) + ((10 * Raster(nlN).maximum)/(Raster(nlN).maximum - Raster(nlN).minimum))
+nlNrescale.save(outputN)
+
+arcpy.AddMessage("Final Nitrogen calcs done.")
+
+# # standardise base nitrogen by multiplying by 100/7603
+# nitStdValue = 0.01315
+# stdNitras = Times(Raster("tempNit.tif"), nitStdValue)
+# stdNitras.save(stdNit)
 # Use EL model for nonlinear effects - parameters set by user
-if arcpy.Exists("maskNnonlin.tif"):
-    ELNitrogen = Con(Raster("maskNnonlin.tif") == 1, (asymN / (1 + Exp((midN - Raster(stdNit))/kN))), Raster(stdNit))
-    ELNitrogen.save(outputN)
-    # finalN = Times(Raster("nonlinNit.tif"), Raster("SPUMask.tif"))
-    # finalN.save(outputN)
-else:
-    stdNitras.save(outputN)
-    arcpy.AddMessage("Final Nitrogen calcs done.")
+# if arcpy.Exists("maskNnonlin.tif"):
+#     ELNitrogen = Con(Raster("maskNnonlin.tif") == 1, (asymN / (1 + Exp((midN - Raster(stdNit))/kN))), Raster(stdNit))
+#     ELNitrogen.save(outputN)
+#     # finalN = Times(Raster("nonlinNit.tif"), Raster("SPUMask.tif"))
+#     # finalN.save(outputN)
+# else:
+#     stdNitras.save(outputN)
+
 
 # Bellbird Habitat MS raster
 rastersBB = arcpy.ListRasters("lacaBB*", "")
