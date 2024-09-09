@@ -353,7 +353,9 @@ if len(rasterC) > 0:
 
     # Rescale N to 1 - 10 scale
     nlCrescale = ((9 * Raster("Cadjusted.tif")) / (Raster(nlC).maximum - Raster(nlC).minimum)) + (10 - ((9 * Raster(nlC).maximum) / (Raster(nlC).maximum - Raster(nlC).minimum)))
-    nlCrescale.save(outputC)
+    finalCool = Times(nlCrescale, Raster("SPUMask.tif"))
+    finalCool.save(outputC)
+    # nlCrescale.save(outputC)
 
     arcpy.AddMessage("Final Cooling layer done.")
 
@@ -373,11 +375,18 @@ if len(rastersN) > 0:
         # Rescale N to 1 - 10 scale
         nlNrescale = ((9 * Raster("Nadjusted.tif")) / (Raster(nlN).maximum - Raster(nlN).minimum)) + (
                 10 - (9 * Raster(nlN).maximum) / (Raster(nlN).maximum - Raster(nlN).minimum))
-        nlNrescale.save(outputN)
+        finalNnl = Times(nlNrescale, Raster("SPUMask.tif"))
+        finalNnl.save(outputN)
+        # nlNrescale.save(outputN)
 
         arcpy.AddMessage("Final Nitrogen calcs done (with NL adjustment.")
     else:
-        Raster("tempNit.tif").save(outputN)
+        Nrescale = ((9 * Raster("Nadjusted.tif")) / (Raster("Nadjusted.tif").maximum - Raster("Nadjusted.tif").minimum)) + (
+                10 - (9 * Raster("Nadjusted.tif").maximum) / (Raster("Nadjusted.tif").maximum - Raster("Nadjusted.tif").minimum))
+        finalN = Times(Nrescale, Raster("SPUMask.tif"))
+        finalN.save(outputN)
+        # Nrescale.save(outputN)
+        # Raster("tempNit.tif").save(outputN)
         arcpy.AddMessage("Final Nitrogen calcs done.")
 
 # # standardise base nitrogen by multiplying by 100/7603
@@ -414,11 +423,17 @@ if len(rastersBB) > 0:
         # Rescale N to 1 - 10 scale
         nlBBrescale = ((9 * Raster("BBadjusted.tif")) / (Raster(nlBB).maximum - Raster(nlBB).minimum)) + (
                     (10 - (9 * Raster(nlBB).maximum) / (Raster(nlBB).maximum - Raster(nlBB).minimum)))
+        finalBBnl = Times(nlBBrescale, Raster("SPUMask.tif"))
         nlBBrescale.save(outputHBB)
 
         arcpy.AddMessage("Final Bellbird calcs done (with NL adjustment.")
     else:
-        Raster("tempBB.tif").save(outputHBB)
+        BBrescale = ((9 * Raster("tempBB.tif")) / (Raster("tempBB.tif").maximum - Raster("tempBB.tif").minimum)) + (
+                    (10 - (9 * Raster("tempBB.tif").maximum) / (Raster("tempBB.tif").maximum - Raster("tempBB.tif").minimum)))
+        finalBB = Times(BBrescale, Raster("SPUMask.tif"))
+        finalBB.save(outputHBB)
+        # BBrescale.save(outputHBB)
+        # Raster("tempBB.tif").save(outputHBB)
         arcpy.AddMessage("Final Bellbird calcs done.")
 
 
@@ -442,11 +457,16 @@ if len(rastersFT) > 0:
         # Rescale N to 1 - 10 scale
         nlFTrescale = ((9 * Raster("FTadjusted.tif")) / (Raster(nlFT).maximum - Raster(nlFT).minimum)) + (
                 (10 - (9 * Raster(nlFT).maximum) / (Raster(nlFT).maximum - Raster(nlFT).minimum)))
-        nlFTrescale.save(outputHFT)
+        finalFTnl = Times(nlFTrescale, Raster("SPUMask.tif"))
+        finalFTnl.save(outputHFT)
 
         arcpy.AddMessage("Final Fantail calcs done (with NL adjustment).")
     else:
-        Raster("tempFT.tif").save(outputHFT)
+        FTrescale = ((9 * Raster("tempFT.tif")) / (Raster("tempFT.tif").maximum - Raster("tempFT.tif").minimum)) + (
+                (10 - (9 * Raster("tempFT.tif").maximum) / (Raster("tempFT.tif").maximum - Raster("tempFT.tif").minimum)))
+        finalFT = Times(FTrescale, Raster("SPUMask.tif"))
+        finalFT.save(outputHFT)
+        # Raster("tempFT.tif").save(outputHFT)
         arcpy.AddMessage("Final Fantail calcs done.")
 
 arcpy.AddMessage("Starting ES metascores.")
