@@ -116,6 +116,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@']) as cursor:
 
 # del row
 # del cursor
+arcpy.AddMessage("Finished buffers")
 
 # Add up N grids and create masks
 addN = CellStatistics(listN, "SUM", "NODATA")
@@ -124,7 +125,7 @@ maxAddN = int(addNras.maximum)
 addN.save("addN.tif")
 
 # create nonlinear adjustment layer for N
-nonlinNadj = 1 / (1 + Exp(-1 * "addN.tif" + Exp(2)))
+nonlinNadj = 1 / (1 + Exp(-1 * Raster("addN.tif") + Exp(2)))
 nonlinNadj.save("masknonlinNadj.tif")
 
 # output mask for N
@@ -146,7 +147,7 @@ maxAddFT = int(addFTras.maximum)
 addFT.save("addFT.tif")
 
 # create nonlinear adjustment layer for FT
-nonlinFTadj = 1 / (1 + Exp(-1 * "addFT.tif" + Exp(2)))
+nonlinFTadj = 1 / (1 + Exp(-1 * Raster("addFT.tif") + Exp(2)))
 nonlinFTadj.save("masknonlinFTadj.tif")
 
 # output mask for FT
@@ -168,8 +169,8 @@ maxAddBB = int(addBBras.maximum)
 addBB.save("addBB.tif")
 
 # create nonlinear adjustment layer for BB
-nonlinBBadj = 1 / (1 + Exp(-1 * "addBB.tif" + Exp(2)))
-nonlinBBadj.save("masknonlinDDadj.tif")
+nonlinBBadj = 1 / (1 + Exp(-1 * Raster("addBB.tif") + Exp(2)))
+nonlinBBadj.save("masknonlinBBadj.tif")
 
 # output mask for BB
 if maxAddBB <= 0:
@@ -279,15 +280,16 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                         coolOut = ha * cc * Exp(-5 * (distInC / d))
                         # coolOut = ha * cc * Exp((-1 * distIn) / d)
                         coolOut.save("coolcalc_" + str(fid) + "_" + str(pfid) + ".tif")
-                        listCool.append("coolcal_" + str(fid) + "_" + str(pfid) + "tif")
+                        listCool.append(Raster("coolcalc_" + str(fid) + "_" + str(pfid) + ".tif"))
 
             # del rowp
             # del cursorp
 
             # make cooling overlaps
-            overlapC = CellStatistics(listCool, "SUM", "NODATA")
-            overlapCreclass = Con(IsNull(Raster(overlapC)), 0, 1)
-            overlapCreclass.save("OverlapC_" + str(fid) + "tif")
+            if len(listCool) > 0:
+                overlapC = CellStatistics(listCool, "SUM", "NODATA")
+                overlapCreclass = Con(IsNull(Raster(overlapC)), 0, 1)
+                overlapCreclass.save("OverlapC_" + str(fid) + ".tif")
 
             listCool.clear()
 
@@ -343,15 +345,14 @@ if len(rasterC) > 0:
     finalCoverlaps.save("AllCoverlaps.tif")
 
     # nonlinear cooling adjustment here
-    nonlinCadj = 1 / (1 + Exp(-1 * "AllCoverlaps.tif" + Exp(2)))
+    nonlinCadj = 1 / (1 + Exp(-1 * Raster("AllCoverlaps.tif") + Exp(2)))
     nonlinCadj.save("masknonlinCadj.tif")
 
-    nlC = "midcool.tif" + ("midcool.tif" * Raster("masknonlinCadj.tif"))
-    nlC.save("NCadjusted.tif")
+    nlC = Raster("midcool.tif") + (Raster("midcool.tif") * Raster("masknonlinCadj.tif"))
+    nlC.save("Cadjusted.tif")
 
     # Rescale N to 1 - 10 scale
-    nlCrescale = ((9 * Raster("Cadjusted.tif")) / (Raster(nlC).maximum - Raster(nlC).minimum)) + (
-                (10 * Raster(nlC).maximum) / (Raster(nlC).maximum - Raster(nlC).minimum))
+    nlCrescale = ((9 * Raster("Cadjusted.tif")) / (Raster(nlC).maximum - Raster(nlC).minimum)) + (10 - ((9 * Raster(nlC).maximum) / (Raster(nlC).maximum - Raster(nlC).minimum)))
     nlCrescale.save(outputC)
 
     arcpy.AddMessage("Final Cooling layer done.")
@@ -366,16 +367,17 @@ if len(rastersN) > 0:
 
     # nonlinear adjustment of Nitrogen raw values
     if arcpy.Exists("maskNnonlin.tif"):
-        nlN = "tempNit.tif" + ("tempNit.tif" * Raster("masknonlinNadj.tif"))
+        nlN = Raster("tempNit.tif") + (Raster("tempNit.tif") * Raster("masknonlinNadj.tif"))
         nlN.save("Nadjusted.tif")
 
         # Rescale N to 1 - 10 scale
-        nlNrescale = ((9 * Raster("Nadjusted.tif")) / (Raster(nlN).maximum - Raster(nlN).minimum)) + ((10 * Raster(nlN).maximum)/(Raster(nlN).maximum - Raster(nlN).minimum))
+        nlNrescale = ((9 * Raster("Nadjusted.tif")) / (Raster(nlN).maximum - Raster(nlN).minimum)) + (
+                10 - (9 * Raster(nlN).maximum) / (Raster(nlN).maximum - Raster(nlN).minimum))
         nlNrescale.save(outputN)
 
         arcpy.AddMessage("Final Nitrogen calcs done (with NL adjustment.")
     else:
-        Raster("tempMit.tif").save(outputN)
+        Raster("tempNit.tif").save(outputN)
         arcpy.AddMessage("Final Nitrogen calcs done.")
 
 # # standardise base nitrogen by multiplying by 100/7603
@@ -406,12 +408,12 @@ if len(rastersBB) > 0:
     # Use EL Model for nonlinear effects - user supplies parameters
     if arcpy.Exists("maskBBnonlin.tif"):
         # nolinear BB adjustment
-        nlBB = "tempBB.tif" + ("tempBB.tif" * Raster("masknonlinBBadj.tif"))
+        nlBB = Raster("tempBB.tif") + (Raster("tempBB.tif") * Raster("masknonlinBBadj.tif"))
         nlBB.save("BBadjusted.tif")
 
         # Rescale N to 1 - 10 scale
         nlBBrescale = ((9 * Raster("BBadjusted.tif")) / (Raster(nlBB).maximum - Raster(nlBB).minimum)) + (
-                    (10 * Raster(nlBB).maximum) / (Raster(nlBB).maximum - Raster(nlBB).minimum))
+                    (10 - (9 * Raster(nlBB).maximum) / (Raster(nlBB).maximum - Raster(nlBB).minimum)))
         nlBBrescale.save(outputHBB)
 
         arcpy.AddMessage("Final Bellbird calcs done (with NL adjustment.")
@@ -427,24 +429,24 @@ outputHFT = outName + "_FantailHabitat.tif"
 proj = arcpy.SpatialReference(2193)
 if len(rastersFT) > 0:
     arcpy.MosaicToNewRaster_management(rastersFT, ws, "tempFT.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
-    # standardise FT by multiplying by 100/0.24
-    stdFTValue = 416.7
-    stdFT = Times(Raster("tempFT.tif"), stdFTValue)
-    stdFT.save(midFTras)
+    # # standardise FT by multiplying by 100/0.24
+    # stdFTValue = 416.7
+    # stdFT = Times(Raster("tempFT.tif"), stdFTValue)
+    # stdFT.save(midFTras)
 
     if arcpy.Exists("maskFTnonlin.tif"):
         # nolinear FT adjustment
-        nlFT = "tempFT.tif" + ("tempFT.tif" * Raster("masknonlinFTadj.tif"))
+        nlFT = Raster("tempFT.tif") + (Raster("tempFT.tif") * Raster("masknonlinFTadj.tif"))
         nlFT.save("FTadjusted.tif")
 
         # Rescale N to 1 - 10 scale
         nlFTrescale = ((9 * Raster("FTadjusted.tif")) / (Raster(nlFT).maximum - Raster(nlFT).minimum)) + (
-                (10 * Raster(nlFT).maximum) / (Raster(nlFT).maximum - Raster(nlFT).minimum))
+                (10 - (9 * Raster(nlFT).maximum) / (Raster(nlFT).maximum - Raster(nlFT).minimum)))
         nlFTrescale.save(outputHFT)
 
         arcpy.AddMessage("Final Fantail calcs done (with NL adjustment).")
     else:
-        stdFT.save(outputHFT)
+        Raster("tempFT.tif").save(outputHFT)
         arcpy.AddMessage("Final Fantail calcs done.")
 
 arcpy.AddMessage("Starting ES metascores.")
