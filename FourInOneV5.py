@@ -125,7 +125,7 @@ maxAddN = int(addNras.maximum)
 addN.save("addN.tif")
 
 # create nonlinear adjustment layer for N
-nonlinNadj = 1 / (1 + Exp(-1 * Raster("addN.tif") + Exp(2)))
+nonlinNadj = Con((Raster"addN.tif") > 0, 1 / (1 + Exp(-1 * Raster("addN.tif") + Exp(0.1))), 0)
 nonlinNadj.save("masknonlinNadj.tif")
 
 # output mask for N
@@ -147,7 +147,7 @@ maxAddFT = int(addFTras.maximum)
 addFT.save("addFT.tif")
 
 # create nonlinear adjustment layer for FT
-nonlinFTadj = 1 / (1 + Exp(-1 * Raster("addFT.tif") + Exp(2)))
+nonlinFTadj = Con(Raster("addFT.tif") > 0, 1 / (1 + Exp(-1 * Raster("addFT.tif") + Exp(2))), 0)
 nonlinFTadj.save("masknonlinFTadj.tif")
 
 # output mask for FT
@@ -169,7 +169,7 @@ maxAddBB = int(addBBras.maximum)
 addBB.save("addBB.tif")
 
 # create nonlinear adjustment layer for BB
-nonlinBBadj = 1 / (1 + Exp(-1 * Raster("addBB.tif") + Exp(2)))
+nonlinBBadj = Con(Raster("addBB.tif") > 0, 1 / (1 + Exp(-1 * Raster("addBB.tif") + Exp(2))), 0)
 nonlinBBadj.save("masknonlinBBadj.tif")
 
 # output mask for BB
@@ -190,13 +190,13 @@ listFT.clear()
 listBB.clear()
 
 # delete all except final masks
-for ras in arcpy.ListRasters("*", ""):
-    if not ras.startswith("mask"):
-        arcpy.Delete_management(ras)
-# Delete buffer shapefiles
-for shp in arcpy.ListFeatureClasses():
-    if shp.startswith("buf"):
-        arcpy.Delete_management(shp)
+# for ras in arcpy.ListRasters("*", ""):
+#     if not ras.startswith("mask"):
+#         arcpy.Delete_management(ras)
+# # Delete buffer shapefiles
+# for shp in arcpy.ListFeatureClasses():
+#     if shp.startswith("buf"):
+#         arcpy.Delete_management(shp)
 
 # Create mask to set SPU area to 0 for Zonal Statistics as Table
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "Mask.tif", "CELL_CENTER", "", cellSize)
@@ -251,7 +251,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
             arcpy.PolygonToLine_management(row[1], outLine, "")
             # autogenerate points
             bdyp = "BDYPoints_" + str(fid) + ".shp"
-            arcpy.GeneratePointsAlongLines_management(outLine, bdyp, 'DISTANCE', Distance="20 meters")
+            arcpy.GeneratePointsAlongLines_management(outLine, bdyp, 'DISTANCE', Distance="20 meters", Include_End_Points='END_POINTS')
             # Near boundary points to centerline
             if int(arcpy.GetCount_management(bdyp)["row_count"]) > 0:
                 arcpy.Near_analysis(bdyp, cline)
@@ -345,14 +345,15 @@ if len(rasterC) > 0:
     finalCoverlaps.save("AllCoverlaps.tif")
 
     # nonlinear cooling adjustment here
-    nonlinCadj = 1 / (1 + Exp(-1 * Raster("AllCoverlaps.tif") + Exp(2)))
+    nonlinCadj = Con(Raster("AllCoverlaps.tif") > 0, 1 / (1 + Exp(-1 * Raster("AllCoverlaps.tif") + Exp(2))), 0)
     nonlinCadj.save("masknonlinCadj.tif")
 
     nlC = Raster("midcool.tif") + (Raster("midcool.tif") * Raster("masknonlinCadj.tif"))
     nlC.save("Cadjusted.tif")
 
     # Rescale N to 1 - 10 scale
-    nlCrescale = ((9 * Raster("Cadjusted.tif")) / (Raster(nlC).maximum - Raster(nlC).minimum)) + (10 - ((9 * Raster(nlC).maximum) / (Raster(nlC).maximum - Raster(nlC).minimum)))
+    nlCrescale = ((9 * Raster("Cadjusted.tif")) / (Raster("Cadjusted.tif").maximum - Raster("Cadjusted.tif").minimum)) + \
+                 (10 - ((9 * Raster("Cadjusted.tif").maximum) / (Raster("Cadjusted.tif").maximum - Raster("Cadjusted.tif").minimum)))
     finalCool = Times(nlCrescale, Raster("SPUMask.tif"))
     finalCool.save(outputC)
     # nlCrescale.save(outputC)
@@ -373,16 +374,16 @@ if len(rastersN) > 0:
         nlN.save("Nadjusted.tif")
 
         # Rescale N to 1 - 10 scale
-        nlNrescale = ((9 * Raster("Nadjusted.tif")) / (Raster(nlN).maximum - Raster(nlN).minimum)) + (
-                10 - (9 * Raster(nlN).maximum) / (Raster(nlN).maximum - Raster(nlN).minimum))
+        nlNrescale = ((9 * Raster("Nadjusted.tif")) / (Raster("Nadjusted.tif").maximum - Raster("Nadjusted.tif").minimum)) + \
+                     (10 - ((9 * Raster("Nadjusted.tif").maximum) / (Raster("Nadjusted.tif").maximum - Raster("Nadjusted.tif").minimum)))
         finalNnl = Times(nlNrescale, Raster("SPUMask.tif"))
         finalNnl.save(outputN)
         # nlNrescale.save(outputN)
 
         arcpy.AddMessage("Final Nitrogen calcs done (with NL adjustment.")
     else:
-        Nrescale = ((9 * Raster("Nadjusted.tif")) / (Raster("Nadjusted.tif").maximum - Raster("Nadjusted.tif").minimum)) + (
-                10 - (9 * Raster("Nadjusted.tif").maximum) / (Raster("Nadjusted.tif").maximum - Raster("Nadjusted.tif").minimum))
+        Nrescale = ((9 * Raster("tempNit.tif")) / (Raster("tempNit.tif").maximum - Raster("tempNit.tif").minimum)) + \
+                   (10 - ((9 * Raster("tempNit.tif").maximum) / (Raster("tempNit.tif").maximum - Raster("tempNit.tif").minimum)))
         finalN = Times(Nrescale, Raster("SPUMask.tif"))
         finalN.save(outputN)
         # Nrescale.save(outputN)
@@ -421,15 +422,15 @@ if len(rastersBB) > 0:
         nlBB.save("BBadjusted.tif")
 
         # Rescale N to 1 - 10 scale
-        nlBBrescale = ((9 * Raster("BBadjusted.tif")) / (Raster(nlBB).maximum - Raster(nlBB).minimum)) + (
-                    (10 - (9 * Raster(nlBB).maximum) / (Raster(nlBB).maximum - Raster(nlBB).minimum)))
+        nlBBrescale = ((9 * Raster("BBadjusted.tif")) / (Raster("BBadjusted.tif").maximum - Raster("BBadjusted.tif").minimum)) + \
+                      (10 - ((9 * Raster("BBadjusted.tif").maximum) / (Raster("BBadjusted.tif").maximum - Raster("BBadjusted.tif").minimum)))
         finalBBnl = Times(nlBBrescale, Raster("SPUMask.tif"))
         nlBBrescale.save(outputHBB)
 
         arcpy.AddMessage("Final Bellbird calcs done (with NL adjustment.")
     else:
-        BBrescale = ((9 * Raster("tempBB.tif")) / (Raster("tempBB.tif").maximum - Raster("tempBB.tif").minimum)) + (
-                    (10 - (9 * Raster("tempBB.tif").maximum) / (Raster("tempBB.tif").maximum - Raster("tempBB.tif").minimum)))
+        BBrescale = ((9 * Raster("tempBB.tif")) / (Raster("tempBB.tif").maximum - Raster("tempBB.tif").minimum)) + \
+                    (10 - ((9 * Raster("tempBB.tif").maximum) / (Raster("tempBB.tif").maximum - Raster("tempBB.tif").minimum)))
         finalBB = Times(BBrescale, Raster("SPUMask.tif"))
         finalBB.save(outputHBB)
         # BBrescale.save(outputHBB)
@@ -455,15 +456,15 @@ if len(rastersFT) > 0:
         nlFT.save("FTadjusted.tif")
 
         # Rescale N to 1 - 10 scale
-        nlFTrescale = ((9 * Raster("FTadjusted.tif")) / (Raster(nlFT).maximum - Raster(nlFT).minimum)) + (
-                (10 - (9 * Raster(nlFT).maximum) / (Raster(nlFT).maximum - Raster(nlFT).minimum)))
+        nlFTrescale = ((9 * Raster("FTadjusted.tif")) / (Raster("FTadjusted.tif").maximum - Raster("FTadjusted.tif").minimum)) + \
+                      (10 - ((9 * Raster("FTadjusted.tif").maximum) / (Raster("FTadjusted.tif").maximum - Raster("FTadjusted.tif").minimum)))
         finalFTnl = Times(nlFTrescale, Raster("SPUMask.tif"))
         finalFTnl.save(outputHFT)
 
         arcpy.AddMessage("Final Fantail calcs done (with NL adjustment).")
     else:
-        FTrescale = ((9 * Raster("tempFT.tif")) / (Raster("tempFT.tif").maximum - Raster("tempFT.tif").minimum)) + (
-                (10 - (9 * Raster("tempFT.tif").maximum) / (Raster("tempFT.tif").maximum - Raster("tempFT.tif").minimum)))
+        FTrescale = ((9 * Raster("tempFT.tif")) / (Raster("tempFT.tif").maximum - Raster("tempFT.tif").minimum)) + \
+                    (10 - ((9 * Raster("tempFT.tif").maximum) / (Raster("tempFT.tif").maximum - Raster("tempFT.tif").minimum)))
         finalFT = Times(FTrescale, Raster("SPUMask.tif"))
         finalFT.save(outputHFT)
         # Raster("tempFT.tif").save(outputHFT)
