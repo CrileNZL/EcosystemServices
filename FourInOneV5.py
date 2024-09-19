@@ -46,7 +46,7 @@ cellSize = arcpy.GetParameterAsText(5)
 # get output file name from user
 outName = arcpy.GetParameterAsText(6)
 
-dcalcBB = 500.0
+dcalcBB = 25.0
 dcalcFT = 100.0
 
 arcpy.CheckOutExtension("Spatial")
@@ -167,6 +167,15 @@ listN.clear()
 listFT.clear()
 listBB.clear()
 
+# delete all except final masks
+for ras in arcpy.ListRasters("*", ""):
+    if not ras.startswith("mask"):
+        arcpy.Delete_management(ras)
+# Delete buffer shapefiles
+for shp in arcpy.ListFeatureClasses():
+    if shp.startswith("buf"):
+        arcpy.Delete_management(shp)
+
 # Create mask to set SPU area to 0 for Zonal Statistics as Table
 arcpy.PolygonToRaster_conversion(inputFC, "Shape_Area", "Mask.tif", "CELL_CENTER", "", cellSize)
 # use Con to change NoData values to 0 and existing values to NoData
@@ -207,7 +216,8 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
         listCool = []
         if row[2] >= 4900.00 or (row[2] < 4900.00 and row[5] <= float(2 * ((row[2] / math.pi) ** 0.5))):
 
-            cc = float(row[3])
+            # cc = float(row[3])
+            cc = 10
 
             # new Cooling code here
             # polygon to line
@@ -217,7 +227,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
             arcpy.PolygonToLine_management(row[1], outLine, "")
             # autogenerate points
             bdyp = "BDYPoints_" + str(fid) + ".shp"
-            arcpy.GeneratePointsAlongLines_management(outLine, bdyp, 'DISTANCE', Distance="20 meters", Include_End_Points='END_POINTS')
+            arcpy.GeneratePointsAlongLines_management(outLine, bdyp, 'DISTANCE', Distance="5 meters", Include_End_Points='END_POINTS')
             # Near boundary points to centerline
             if int(arcpy.GetCount_management(bdyp)["row_count"]) > 0:
                 arcpy.Near_analysis(bdyp, cline)
