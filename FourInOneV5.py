@@ -23,6 +23,7 @@ arcpy.env.overwriteOutput = True
 
 # Get Clump polygon layer from user
 inputFC = arcpy.GetParameterAsText(0)
+proj = arcpy.Describe(inputFC).spatialReference
 
 # Get centerline shapefile from user
 cline = arcpy.GetParameterAsText(1)
@@ -241,7 +242,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
         SPUoverlaps = arcpy.ListRasters("coolcalc_" + str(fid) + "*")
         # proj = arcpy.SpatialReference(2193)
         if len(SPUoverlaps) > 0:
-            SPUoverlapAdd = arcpy.MosaicToNewRaster_management(SPUoverlaps, ws, "thisOverlapC_" + str(fid) + ".tif", "", "32_BIT_FLOAT", cellSize, "1", "SUM")
+            SPUoverlapAdd = arcpy.MosaicToNewRaster_management(SPUoverlaps, ws, "thisOverlapC_" + str(fid) + ".tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
             SPUoverlap = Con(Raster("thisOverlapC_" + str(fid) + ".tif") > 0, 1, 0)
             SPUoverlap.save("OverlapC_" + str(fid) + ".tif")
 
@@ -326,7 +327,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
         SPUoverlapsBB = arcpy.ListRasters("bbcalc_" + str(fid) + "*")
         # proj = arcpy.SpatialReference(2193)
         if len(SPUoverlapsBB) > 0:
-            SPUoverlapBBAdd = arcpy.MosaicToNewRaster_management(SPUoverlaps, ws, "thisOverlapBB_" + str(fid) + ".tif", "", "32_BIT_FLOAT", cellSize, "1", "SUM")
+            SPUoverlapBBAdd = arcpy.MosaicToNewRaster_management(SPUoverlaps, ws, "thisOverlapBB_" + str(fid) + ".tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
             SPUoverlapBB = Con(Raster("thisOverlapBB_" + str(fid) + ".tif") > 0, 1, 0)
             SPUoverlapBB.save("OverlapBB_" + str(fid) + ".tif")
 
@@ -381,7 +382,7 @@ outputC = outName + "_cool" + ".tif"
 # proj = arcpy.SpatialReference(2193)
 if len(rasterC) > 0:
 
-    arcpy.MosaicToNewRaster_management(rasterC, ws, "midcool.tif", "", "32_BIT_FLOAT", cellSize, "1", "SUM")
+    arcpy.MosaicToNewRaster_management(rasterC, ws, "midcool.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 
     # Bring cooling overlaps together
     overlaps = arcpy.ListRasters("OverlapC*", "")
@@ -436,7 +437,7 @@ stdHBBras = outName + "_baseBellbirdHabitat.tif"
 outputHBB = outName + "_BellbirdHabitat.tif"
 # proj = arcpy.SpatialReference(2193)
 if len(rastersBB) > 0:
-    arcpy.MosaicToNewRaster_management(rastersBB, ws, "midBB.tif", "", "32_BIT_FLOAT", cellSize, "1", "SUM")
+    arcpy.MosaicToNewRaster_management(rastersBB, ws, "midBB.tif", proj, "32_BIT_FLOAT", cellSize, "1", "SUM")
 
     # Bring Bellbird overlaps together
     overlapsBB = arcpy.ListRasters("OverlapBB*", "")
