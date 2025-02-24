@@ -55,6 +55,8 @@ outName = arcpy.GetParameterAsText(5)
 dcalcBB = 500.0
 dcalcFT = 100.0
 
+az = int(arcpy.GetParameterAsText(6))
+
 arcpy.CheckOutExtension("Spatial")
 
 # Create masks to limit area of application for nonlinear equation
@@ -349,7 +351,7 @@ nOut = Con(nDist <= 7, (-235 * nDist + 2065), 0)
 nOut.save("NStart.tif")
 
 # Hillshade, azimuth = 315, altitude = 45, no shadows
-nHS = Hillshade(nOut, 315, 45, "SHADOWS", 0.01)
+nHS = Hillshade(nOut, az, 45, "SHADOWS", 0.01)
 nHS.save("nHS.tif")
 
 # Reclassify: 0 = 1, > 0 = NODATA
