@@ -13,6 +13,8 @@
 # Version 5 - Sept 2024 - replace nonlinear adjustment with Sigmoid function
 # rescale final values to a 1 - 10 scale
 
+# March 2025 - adding Select by ATtribute so each SPU's correct centerline gets selected before running Near
+
 import arcpy
 
 import math
