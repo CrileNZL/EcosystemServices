@@ -202,6 +202,8 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                                                       Include_End_Points='END_POINTS')
             # Near boundary points to centerline
             if int(arcpy.GetCount_management(bdyp)["row_count"]) > 0:
+                # select centerline for that SPU
+                arcpy.management.SelectLayerByAttribute(cline, "NEW_SELECTION", "[FID = " + fid)
                 arcpy.Near_analysis(bdyp, cline)
                 minDistC = (max([cur[0] for cur in arcpy.da.SearchCursor(bdyp, "NEAR_DIST")]) / dcool)
                 arcpy.AddMessage("minDistC = " + str(minDistC))
