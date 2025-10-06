@@ -15,6 +15,8 @@
 
 # March 2025 - adding Select by ATtribute so each SPU's correct centerline gets selected before running Near
 
+# October 2025 - adapting script for vineyard application
+
 import arcpy
 
 import math
@@ -243,7 +245,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                                 listCool.append(Raster("coolcalc_" + str(fid) + "_" + str(pfid) + ".tif"))
                 else:
                     print("SPU FID " + str(fid) + " isn't okay for cooling")
-        arcpy.AddMessage("Cooling calcs done, starting BB calcs")
+        arcpy.AddMessage("Cooling calcs done")
         # print("Cooling steps done, checking BB calcs (print)")
 
         SPUoverlaps = arcpy.ListRasters("coolcalc_" + str(fid) + "*")
