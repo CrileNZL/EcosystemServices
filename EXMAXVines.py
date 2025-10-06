@@ -169,7 +169,7 @@ nCon.save("SPUMask.tif")
 arcpy.Near_analysis(inputFC, inputFC)
 
 # Create distance grids for use in ES code
-with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', 'NEAR_DIST']) as cursor:
+with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', 'NEAR_DIST', 'SPUDist', 'MinWidth']) as cursor:
     for row in cursor:
 
         fid = row[0]
@@ -187,7 +187,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
         listBB = []
 
         # check if right size/proximity for cooling
-        if row[2] >= 4900.00 or (row[2] < 4900.00 and row[5] <= 10):
+        if row[2] >= 3500 or (row[2] < 35.00 and row[5] <= row[6]):
             print("SPU FID " + str(fid) + " is okay for cooling")
             # cc = float(row[3]) - now set by user
 
@@ -218,8 +218,8 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                 maxWidth = 2 * max([cur[0] for cur in arcpy.da.SearchCursor(bdyp, "NEAR_DIST")])
                 print("maxWidth = " + str(maxWidth))
 
-                # if maxWidth . 5, loop through BDYPoints and do cooling calcs
-                if maxWidth >= 5:
+                # if maxWidth > MinWidth, loop through BDYPoints and do cooling calcs
+                if maxWidth >= row[7]:
                     with arcpy.da.SearchCursor(bdyp, ['FID', 'SHAPE@', 'NEAR_DIST']) as cursorp:
                         for rowp in cursorp:
                             pfid = rowp[0]
