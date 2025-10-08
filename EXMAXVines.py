@@ -187,7 +187,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
         listBB = []
 
         # check if right size/proximity for cooling
-        if row[2] >= 3500 or (row[2] < 35.00 and row[5] <= row[6]):
+        if row[2] >= 35.00 or (row[2] < 35.00 and row[5] <= row[6]):
             print("SPU FID " + str(fid) + " is okay for cooling")
             # cc = float(row[3]) - now set by user
 
@@ -237,7 +237,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                             ha = float(row[2]) / 10000
 
                             print("Calculating " + str(pfid) + " cooling layer")
-                            if 2 * rowp[2] >= 5:
+                            if 2 * rowp[2] >= 1:
                                 # calc cooling using CON
                                 coolOut = Con(distInC < d, ha * cc * Exp(-5 * (distInC / d)), 0)
                                 coolOut.save("coolcalc_" + str(fid) + "_" + str(pfid) + ".tif")
