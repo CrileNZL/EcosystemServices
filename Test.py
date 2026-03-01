@@ -6,9 +6,9 @@ from arcpy.sa import *
 # arcpy.env.workspace = r"D:\OLW Nitrates\OLWNitrates.gdb" # memory?
 arcpy.env.overwriteOutput = True
 
-ws = arcpy.env.workspace = r"E:\IRPs\Test"
+ws = arcpy.env.workspace = r"E:\240818_irregular SPUs (6ha test)\Test"
 
-inputFC = "Polys.shp"
+inputFC = "SPU.shp"
 
 cline = "cline.shp"
 
@@ -97,7 +97,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
             if arcpy.Exists(bdyp):
                 if maxWidth >= 25:
                     with arcpy.da.SearchCursor(bdyp, ['FID', 'SHAPE@', 'NEAR_DIST']) as cursorbb:
-                        for rowbb in enumerate(cursorbb, start=1):
+                        for rowbb in cursorbb:
                             pfid = rowbb[0]
                             if rowbb[2] >= 25:
                                 if arcpy.Exists("cooldist_" + str(fid) + "_" + str(pfid) + ".tif"):
@@ -106,7 +106,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                                     # if yes, calc BB using CON
                                     bbcalc = "bbcalc_" + str(fid) + "_" + str(pfid) + ".tif"
                                     lacaBBOut = Con(Raster("cooldist_" + str(fid) + "_" + str(pfid) + ".tif") <= dcalcBB,
-                                                    ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster(dist) ** 2) ** 3), 0)
+                                                    ((1 / dcalcBB) * 1.094 * (1 - (1 / dcalcBB) ** 2 * Raster("cooldist_" + str(fid) + "_" + str(pfid) + ".tif") ** 2) ** 3), 0)
                                     lacaBBOut.save(bbcalc)
                                     listBB.append(bbcalc)
                                     print("Cooldist exists - BB calculated")
@@ -114,7 +114,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                                 else:
                                     with arcpy.da.SearchCursor(bdyp, ['FID', 'SHAPE@', 'NEAR_DIST']) as cursorp2:
                                         print("Inside BB search cursor")
-                                        for rowp in enumerate(cursorp2, start=1):
+                                        for rowp in cursorp2:
                                             pfid = rowp[0]
                                             if rowp[2] <= minDistC:
                                                 d = minDistC
@@ -129,7 +129,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                                             # calc BB using CON
                                             lacaBBOut = Con(dist <= dcalcBB,
                                                             ((1 / dcalcBB) * 1.094 * (
-                                                                    1 - (1 / dcalcBB) ** 2 * Raster(dist) ** 2) ** 3), 0)
+                                                                    1 - (1 / dcalcBB) ** 2 * Raster("bbdist_" + str(fid) + "_" + str(pfid) + ".tif") ** 2) ** 3), 0)
                                             lacaBBOut.save(bbcalc)
                                             listBB.append(bbcalc)
 
@@ -160,7 +160,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                     # if maxWidth > 25, loop through BDYPoints and do cooling calcs
                     if maxWidth > 25:
                         with arcpy.da.SearchCursor(bdyp, ['FID', 'SHAPE@', 'NEAR_DIST']) as cursorp:
-                            for rowp in enumerate(cursorp, start=1):
+                            for rowp in cursorp:
                                 pfid = rowp[0]
                                 if rowp[2] <= minDistC:
                                     d = minDistC
@@ -175,7 +175,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                                     # calc BB using CON
                                     lacaBBOut = Con(dist <= dcalcBB,
                                                     ((1 / dcalcBB) * 1.094 * (
-                                                                1 - (1 / dcalcBB) ** 2 * Raster(dist) ** 2) ** 3), 0)
+                                                                1 - (1 / dcalcBB) ** 2 * Raster("bbdist_" + str(fid) + "_" + str(pfid) + ".tif") ** 2) ** 3), 0)
                                     lacaBBOut.save(distOutBB)
                                     listBB.append(distOutBB)
         else:

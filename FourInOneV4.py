@@ -263,7 +263,7 @@ with arcpy.da.SearchCursor(inputFC, ['FID', 'Shape@', 'Shape_Area', 'CC', 'd', '
                         coolOut.save("coolcalc_" + str(fid) + "_" + str(pfid) + ".tif")
 
             # del rowp
-            del cursorp
+            # del cursorp
 
             arcpy.AddMessage("Cooling calcs done.")
 
