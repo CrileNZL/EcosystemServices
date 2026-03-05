@@ -33,11 +33,11 @@ for raster in rasList:
       ras = Raster(raster)
       for name in nameList:
             pos = ras * 5
-            pos.save(name + r"Pos.tif")
+            pos.save(name + r"_Pos.tif")
             inv = (1 - ras) * 5
-            inv.save(name + "Inv.tif")
+            inv.save(name + "_Inv.tif")
             log = ROLog = 5 / (1 + (49 * Exp(-10 * ras)))
-            log.save(name + "Log.tif")
+            log.save(name + "_Log.tif")
 
 # calculate LMAX cases for trees and wetlands
 # get LMAX layers
